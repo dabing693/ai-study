@@ -1,11 +1,7 @@
 package com.lyh.trade.config;
 
 
-
-import com.lyh.trade.tools.AccountService;
-import com.lyh.trade.tools.FundService;
-import com.lyh.trade.tools.StockService;
-import com.lyh.trade.tools.WeatherService;
+import com.lyh.trade.tools.*;
 import org.springframework.ai.tool.ToolCallbackProvider;
 import org.springframework.ai.tool.method.MethodToolCallbackProvider;
 import org.springframework.context.annotation.Bean;
@@ -26,10 +22,11 @@ public class ToolConfig {
             WeatherService weatherService,
             AccountService accountService,
             StockService stockService,
-            FundService fundService
+            FundService fundService,
+            SearchService searchService
     ) {
         return MethodToolCallbackProvider.builder()
-                .toolObjects(weatherService, accountService, stockService, fundService)
+                .toolObjects(weatherService, accountService, stockService, fundService, searchService)
                 .build();
     }
 

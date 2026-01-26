@@ -2,7 +2,7 @@ package com.lyh.trade.tools;
 
 
 import com.lyh.common.util.MarkdownUtil;
-import com.lyh.trade.dto.SearchCodeDTO;
+import com.lyh.trade.domain.dto.SearchCodeDTO;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 import org.springframework.beans.factory.annotation.Autowired;

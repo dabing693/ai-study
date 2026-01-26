@@ -1,4 +1,4 @@
-package com.lyh.trade.dto;
+package com.lyh.trade.domain.dto;
 
 import lombok.Data;
 
