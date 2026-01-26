@@ -1,13 +1,12 @@
 package com.lyh.trade.controller;
 
+import jakarta.annotation.Resource;
+import lombok.RequiredArgsConstructor;
 import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
-import org.springframework.ai.chat.client.advisor.SimpleLoggerAdvisor;
-import org.springframework.ai.chat.client.advisor.ToolCallAdvisor;
 import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.model.ChatResponse;
-import org.springframework.ai.tool.ToolCallbackProvider;
-import org.springframework.ai.zhipuai.ZhiPuAiChatModel;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -18,22 +17,10 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/chat")
 public class ChatController {
-    private final ChatClient chatClient;
-    private final ChatClient noToolChatClient;
-
-    public ChatController(ZhiPuAiChatModel zhiPuAiChatModel,
-                          ToolCallbackProvider toolCallbackProvider,
-                          ChatMemory chatMemory) {
-        this.chatClient = ChatClient.builder(zhiPuAiChatModel)
-                .defaultToolCallbacks(toolCallbackProvider)
-                .defaultAdvisors(new SimpleLoggerAdvisor(), ToolCallAdvisor.builder().build(), MessageChatMemoryAdvisor.builder(chatMemory).build())
-                .build();
-        this.noToolChatClient = ChatClient.builder(zhiPuAiChatModel)
-                .defaultToolCallbacks(toolCallbackProvider)
-                .defaultAdvisors(new SimpleLoggerAdvisor())
-                .build();
-    }
-
+    @Resource(name = "chatClient")
+    private ChatClient chatClient;
+    @Resource(name = "noToolCallAdvisorChatClient")
+    private ChatClient noToolCallAdvisorChatClient;
 
     @GetMapping("/generate")
     public ResponseEntity<ChatResponse> generate(@RequestParam("query") String query,
@@ -59,7 +46,7 @@ public class ChatController {
             sessionId = UUID.randomUUID().toString().replace("-", "");
         }
         String finalSessionId = sessionId;
-        return noToolChatClient.prompt(query)
+        return noToolCallAdvisorChatClient.prompt(query)
                 .advisors(a -> a.param(ChatMemory.CONVERSATION_ID, finalSessionId))
                 .stream()
                 .chatResponse();

@@ -30,7 +30,7 @@ public class StockService {
         return request(selectStockCondition);
     }
 
-    @Tool(description = "查询指定股票的数据，比如其成交量、涨跌幅等行情数据，营业收入、利润等财务数据")
+    @Tool(description = "查询指定股票的数据，比如其成交量、涨跌幅等行情数据，营业收入、利润等财务数据；不包含股票的市场新闻和公告等数据")
     public String queryStock(@ToolParam(description = "股票查询语句") String stockQuery) {
         return request(stockQuery);
     }
