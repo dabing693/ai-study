@@ -9,15 +9,15 @@ import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.tool.ToolCallbackProvider;
 import org.springframework.ai.zhipuai.ZhiPuAiChatModel;
 import org.springframework.http.MediaType;
-import org.springframework.util.StringUtils;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
+
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/chat")
 public class ChatController {
-    private static final String CONVERSATION_ID = "test";
-
     private final ChatClient chatClient;
     private final ChatClient noToolChatClient;
 
@@ -36,17 +36,31 @@ public class ChatController {
 
 
     @GetMapping("/generate")
-    public ChatResponse generate(@RequestParam("query") String query, @RequestHeader("sessionId") String sessionId) {
-        return chatClient.prompt(query)
-                .advisors(a -> a.param(ChatMemory.CONVERSATION_ID, StringUtils.hasLength(sessionId) ? sessionId : CONVERSATION_ID))
+    public ResponseEntity<ChatResponse> generate(@RequestParam("query") String query,
+                                                 @RequestHeader(value = "sessionId", required = false) String sessionId) {
+        if (sessionId == null) {
+            sessionId = UUID.randomUUID().toString().replace("-", "");
+        }
+        String finalSessionId = sessionId;
+        ChatResponse chatResponse = chatClient.prompt(query)
+                .advisors(a -> a.param(ChatMemory.CONVERSATION_ID, finalSessionId))
                 .call()
                 .chatResponse();
+        // 将 sessionId 放入响应头
+        return ResponseEntity.ok()
+                .header("X-Session-Id", finalSessionId)
+                .body(chatResponse);
     }
 
     @GetMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public Flux<ChatResponse> generateStream(@RequestParam(value = "query") String query, @RequestHeader("sessionId") String sessionId) {
+    public Flux<ChatResponse> generateStream(@RequestParam(value = "query") String query,
+                                             @RequestHeader(value = "sessionId", required = false) String sessionId) {
+        if (sessionId == null) {
+            sessionId = UUID.randomUUID().toString().replace("-", "");
+        }
+        String finalSessionId = sessionId;
         return noToolChatClient.prompt(query)
-                .advisors(a -> a.param(ChatMemory.CONVERSATION_ID, StringUtils.hasLength(sessionId) ? sessionId : CONVERSATION_ID))
+                .advisors(a -> a.param(ChatMemory.CONVERSATION_ID, finalSessionId))
                 .stream()
                 .chatResponse();
     }
