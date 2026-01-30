@@ -1,12 +1,11 @@
 from typing import Optional, Dict, Any, Type, List
 from pydantic import BaseModel
 import json
-import requests
 
 
 class DialogAgent:
     """对话智能体 - 用于角色扮演和交互"""
-    
+
     def __init__(self, name: str, system_prompt: str):
         """
         初始化对话智能体
@@ -18,7 +17,7 @@ class DialogAgent:
         self.name = name
         self.system_prompt = system_prompt
         self.message_history = []
-    
+
     async def __call__(self, message: Optional[str] = None, structured_model: Optional[Type[BaseModel]] = None) -> Any:
         """
         调用智能体进行对话
@@ -34,17 +33,29 @@ class DialogAgent:
         messages = [
             {"role": "system", "content": self.system_prompt}
         ]
-        
+        field_desc = ''
+        field_dict = {}
+        ind = 1
+        for key, field in structured_model.model_fields.items():
+            field_desc += f'- {key}: {field.description}（类型: {str(field.annotation)}）\n'
+            field_dict[key] = 'value' + str(ind)
+            ind += 1
+        output_json_example = f"""
+        输出JSON格式实例：
+        字段解释：
+        {field_desc}
+        {json.dumps(field_dict)}
+        """
         # 添加当前消息
         if message:
-            messages.append({"role": "user", "content": message})
+            messages.append({"role": "user", "content": message + "\n\n" + output_json_example})
             self.message_history.append({"role": "user", "content": message})
-        
+
         # 调用智谱大模型
         try:
             response_content = await self._call_chatglm(messages)
             self.message_history.append({"role": "assistant", "content": response_content})
-            
+
             if structured_model:
                 # 尝试解析为结构化输出
                 try:
@@ -53,16 +64,16 @@ class DialogAgent:
                         json_str = response_content.split("```json")[1].split("```")[0]
                     else:
                         json_str = response_content
-                    
+
                     data = json.loads(json_str)
-                    
+
                     # 检查数据结构是否符合要求
                     required_fields = set(structured_model.model_fields.keys())
                     if not required_fields.issubset(data.keys()):
                         # 如果缺少必填字段，返回默认响应
-                        print(f"⚠️ 结构化输出缺少必填字段: {required_fields - data.keys()}")
+                        print(f"⚠️ 结构化输出缺少必填字段: {required_fields - data.keys()}，数据：{data}")
                         return self._get_default_response(structured_model)
-                    
+
                     return structured_model(**data)
                 except Exception as e:
                     print(f"⚠️ 解析结构化输出时出错: {e}")
@@ -74,11 +85,11 @@ class DialogAgent:
             # 出错时返回模拟响应
             response_content = f"{self.name}的响应: {message}"
             self.message_history.append({"role": "assistant", "content": response_content})
-            
+
             if structured_model:
                 return self._get_default_response(structured_model)
             return response_content
-    
+
     async def _call_chatglm(self, messages: List[Dict[str, str]]) -> str:
         """
         调用智谱ChatGLM大模型
@@ -89,28 +100,17 @@ class DialogAgent:
         Returns:
             模型响应
         """
-        # 为了确保响应格式正确，使用模拟响应
-        # 实际项目中可以使用真实的API调用
-        
-        # 检查是否需要返回结构化输出
-        for msg in messages:
-            if isinstance(msg, dict) and "content" in msg:
-                content = msg["content"]
-                if "请选择击杀目标" in content:
-                    return '{"target_name": "曹操"}'
-                elif "请选择要查验的玩家" in content:
-                    return '{"target_name": "孙权"}'
-                elif "你可以选择使用解药或毒药" in content:
-                    return '{"use_antidote": true, "use_poison": false, "target_name": null}'
-                elif "请投票选择要淘汰的玩家" in content:
-                    return '{"target_name": "孙权"}'
-                elif "请分析当前局势并表达你的观点" in content:
-                    return '{"reach_agreement": false, "confidence_level": 5, "key_evidence": "暂时无法分析"}'
-        
-        # 默认返回
-        return '{"reach_agreement": false, "confidence_level": 5, "key_evidence": "暂时无法分析"}'
+        from zhipuai import ZhipuAI
 
-    
+        client = ZhipuAI(api_key='62d5b9049126430f9255d00f7a72c91e.qa240op6bmKv3Axq')
+
+        response = client.chat.completions.create(
+            model="glm-4-flash",
+            messages=messages,
+            stream=False,
+        )
+        return response.choices[0].message.content
+
     def _get_default_response(self, structured_model: Type[BaseModel]) -> Any:
         """
         获取默认响应
@@ -141,7 +141,7 @@ class DialogAgent:
             return structured_model(target_name="孙权")
         else:
             return structured_model()
-    
+
     async def receive_message(self, message: str):
         """
         接收消息
@@ -150,7 +150,7 @@ class DialogAgent:
             message: 收到的消息
         """
         self.message_history.append({"role": "system", "content": message})
-    
+
     def get_message_history(self) -> List[Dict[str, Any]]:
         """
         获取消息历史
