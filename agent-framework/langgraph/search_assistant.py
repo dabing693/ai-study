@@ -61,9 +61,8 @@ def understand_query_node(state: SearchState) -> dict:
 格式：
 理解：[用户需求总结]
 搜索词：[最佳搜索关键词]"""
-
-    # response_text = llm.invoke([SystemMessage(content=understand_prompt)]).content
-    response_text = llm_invoke([{"role": "user", "content": understand_prompt}])
+    response_text = llm.invoke([HumanMessage(content=understand_prompt)]).content
+    # response_text = llm_invoke([{"role": "user", "content": understand_prompt}])
 
     # 解析LLM的输出，提取搜索关键词
     search_query = user_message  # 默认使用原始查询
@@ -109,16 +108,16 @@ def generate_answer_node(state: SearchState) -> dict:
     if state["step"] == "search_failed":
         # 如果搜索失败，执行回退策略，基于LLM自身知识回答
         fallback_prompt = f"搜索API暂时不可用，请基于您的知识回答用户的问题：\n用户问题：{state['user_query']}"
-        # response = llm.invoke([SystemMessage(content=fallback_prompt)]).content
-        response = llm_invoke([{"role": "user", "content": fallback_prompt}])
+        response = llm.invoke([HumanMessage(content=fallback_prompt)]).content
+        # response = llm_invoke([{"role": "user", "content": fallback_prompt}])
     else:
         # 搜索成功，基于搜索结果生成答案
         answer_prompt = f"""基于以下搜索结果为用户提供完整、准确的答案：
 用户问题：{state['user_query']}
 搜索结果：\n{state['search_results']}
 请综合搜索结果，提供准确、有用的回答..."""
-        # response = llm.invoke([SystemMessage(content=answer_prompt)]).content
-        response = llm_invoke([{"role": "user", "content": answer_prompt}])
+        response = llm.invoke([HumanMessage(content=answer_prompt)]).content
+        # response = llm_invoke([{"role": "user", "content": answer_prompt}])
 
     return {
         "final_answer": response,
