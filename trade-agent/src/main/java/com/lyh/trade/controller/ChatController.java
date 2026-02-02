@@ -1,5 +1,6 @@
 package com.lyh.trade.controller;
 
+import com.lyh.trade.react.ReActAgent;
 import jakarta.annotation.Resource;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.memory.ChatMemory;
@@ -18,6 +19,22 @@ public class ChatController {
     private ChatClient chatClient;
     @Resource(name = "noToolCallAdvisorChatClient")
     private ChatClient noToolCallAdvisorChatClient;
+    @Resource
+    private ReActAgent reActAgent;
+
+    @GetMapping("/react")
+    public ResponseEntity<ChatResponse> react(@RequestParam("query") String query,
+                                              @RequestHeader(value = "sessionId", required = false) String sessionId) {
+        if (sessionId == null) {
+            sessionId = UUID.randomUUID().toString().replace("-", "");
+        }
+        String finalSessionId = sessionId;
+        ChatResponse chatResponse = reActAgent.chat(query, sessionId);
+        // 将 sessionId 放入响应头
+        return ResponseEntity.ok()
+                .header("X-Session-Id", finalSessionId)
+                .body(chatResponse);
+    }
 
     @GetMapping("/generate")
     public ResponseEntity<ChatResponse> generate(@RequestParam("query") String query,
