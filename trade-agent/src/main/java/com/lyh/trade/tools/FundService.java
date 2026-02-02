@@ -8,6 +8,7 @@ import org.springframework.ai.tool.annotation.ToolParam;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.*;
@@ -19,7 +20,8 @@ import java.util.stream.Collectors;
  */
 @Service
 public class FundService {
-
+    @Autowired
+    private SearchService searchService;
     @Autowired
     private RestTemplate restTemplate;
     private static final String URL = "https://np-tjxg-b.eastmoney.com/api/smart-tag/fund/v3/pw/search-code";
@@ -32,8 +34,9 @@ public class FundService {
     }
 
     @Tool(description = "查询指定基金的数据")
-    public String queryFund(@ToolParam(description = "基金查询语句") String stockQuery) {
-        return request(stockQuery);
+    public String queryFund(@ToolParam(description = "基金查询条件") String fundQuery) {
+        String res = request(fundQuery);
+        return StringUtils.hasLength(res) ? res : searchService.search(fundQuery);
     }
 
     private String request(String query) {

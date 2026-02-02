@@ -8,6 +8,7 @@ import org.springframework.ai.tool.annotation.ToolParam;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.*;
@@ -20,6 +21,8 @@ import java.util.stream.Collectors;
 @Service
 public class StockService {
     @Autowired
+    private SearchService searchService;
+    @Autowired
     private RestTemplate restTemplate;
     private static final String URL = "https://np-tjxg-b.eastmoney.com/api/smart-tag/stock/v3/pw/search-code";
     private static final Set<String> NO_SHOW_KEYS =
@@ -31,8 +34,9 @@ public class StockService {
     }
 
     @Tool(description = "查询指定股票的数据，比如其成交量、涨跌幅等行情数据，营业收入、利润等财务数据；不包含股票的市场新闻和公告等数据")
-    public String queryStock(@ToolParam(description = "股票查询语句") String stockQuery) {
-        return request(stockQuery);
+    public String queryStock(@ToolParam(description = "股票查询条件") String stockQuery) {
+        String res = request(stockQuery);
+        return StringUtils.hasLength(res) ? res : searchService.search(stockQuery);
     }
 
     private String request(String query) {

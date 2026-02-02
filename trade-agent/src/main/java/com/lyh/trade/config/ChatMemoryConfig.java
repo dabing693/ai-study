@@ -21,7 +21,7 @@ public class ChatMemoryConfig {
     public ChatMemory chatMemory(JdbcChatMemoryRepository jdbcChatMemoryRepository) {
         return MessageWindowChatMemory.builder()
                 .chatMemoryRepository(jdbcChatMemoryRepository)
-                .maxMessages(10) // 自定义消息窗口大小
+                .maxMessages(50) // 自定义消息窗口大小
                 .build();
     }
 }
