@@ -1,9 +1,11 @@
 package com.lyh.trade.self_react.domain;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -14,7 +16,7 @@ import java.util.Map;
 @Data
 public class FunctionTool {
     @JsonProperty(value = "type")
-    private Type type = Type.FUNCTION;
+    private Type type;
     private Function function;
 
     public FunctionTool(Function function) {
@@ -31,10 +33,10 @@ public class FunctionTool {
         @Data
         public static class Parameters {
             private final String type = "object";
-            private Map<String, Property> properties = new HashMap<>();
+            private LinkedHashMap<String, Property> properties;
             private List<String> required;
 
-            public Parameters(Map<String, Property> properties, List<String> required) {
+            public Parameters(LinkedHashMap<String, Property> properties, List<String> required) {
                 this.properties = properties;
                 this.required = required;
             }
@@ -43,6 +45,8 @@ public class FunctionTool {
             public static class Property {
                 private String type;
                 private String description;
+                @JsonIgnore
+                private Class<?> clz;
             }
         }
     }

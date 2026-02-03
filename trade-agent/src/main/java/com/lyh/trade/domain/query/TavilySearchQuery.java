@@ -37,4 +37,6 @@ public class TavilySearchQuery {
     private List<String> include_domains;
 
     private List<String> exclude_domains;
+
+    private String start_date;
 }

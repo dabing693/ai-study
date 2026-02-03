@@ -17,6 +17,7 @@ import java.util.UUID;
  */
 @Data
 public class ChatRequest {
+    private final Thinking thinking = new Thinking();
     @JsonProperty(value = "do_sample")
     private boolean doSample = true;
     @JsonProperty(value = "max_tokens")
@@ -51,8 +52,26 @@ public class ChatRequest {
         return this;
     }
 
-    public ChatRequest model(String model){
+    public ChatRequest model(String model) {
         this.setModel(model);
         return this;
+    }
+
+    public ChatRequest enableThinking(boolean enable) {
+        if (enable) {
+            this.getThinking().setType("enabled");
+        } else {
+            this.getThinking().setType("disabled");
+        }
+        return this;
+    }
+
+    @Data
+    public static class Thinking {
+        /**
+         * enabled
+         * disabled
+         */
+        private String type = "enabled";
     }
 }

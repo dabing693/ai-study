@@ -39,7 +39,7 @@ public class MarkdownUtil {
                 Object cellContent = data[i][j];
                 if (cellContent instanceof String) {
                     cellContent = ((String) cellContent).replace("\n", "<br>")
-                    .replace("|","（");
+                    .replace("|","&#124;");
                 }
                 sb.append("| " + cellContent + " ");
             }

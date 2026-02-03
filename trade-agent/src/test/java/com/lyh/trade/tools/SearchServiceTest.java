@@ -15,7 +15,7 @@ public class SearchServiceTest {
 
     @Test
     public void searchTest() {
-        final String r = searchService.search("国投瑞银白银期货(LOF)A，最近有啥利好消息吗");
+        final String r = searchService.search("贵州茅台 利好消息 最新", "2026-02-01");
         System.out.println(r);
     }
 }

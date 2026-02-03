@@ -61,14 +61,14 @@ public class ToolBuilder {
         function.setDescription(tool.description());
         //工具参数
         function.setParameters(buildParams(method));
-        ToolInvoker.add(function.getName(), method, object);
+        ToolInvoker.add(function, method, object);
         return new FunctionTool(function);
     }
 
     private FunctionTool.Function.Parameters buildParams(Method method) {
         Parameter[] methodParameters = method.getParameters();
-        //工具的所有属性
-        Map<String, FunctionTool.Function.Parameters.Property> properties = new HashMap<>();
+        //工具的所有属性 保持顺序
+        LinkedHashMap<String, FunctionTool.Function.Parameters.Property> properties = new LinkedHashMap<>();
         //工具的必须属性，未配置@ToolParam时是必须
         List<String> required = new ArrayList<>();
         String[] parameterNames = new StandardReflectionParameterNameDiscoverer()
@@ -76,9 +76,10 @@ public class ToolBuilder {
         for (int i = 0; i < methodParameters.length; i++) {
             Parameter param = methodParameters[i];
             FunctionTool.Function.Parameters.Property property = new FunctionTool.Function.Parameters.Property();
-            ToolParam toolParam = param.getAnnotation(ToolParam.class);
+            property.setClz(param.getType());
             property.setType(param.getType().getSimpleName().toLowerCase(Locale.ROOT));
             String paramName = parameterNames[i];
+            ToolParam toolParam = param.getAnnotation(ToolParam.class);
             if (toolParam != null) {
                 property.setDescription(toolParam.description());
                 if (toolParam.required()) {

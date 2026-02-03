@@ -1,6 +1,7 @@
 package com.lyh.trade.self_react;
 
 import com.alibaba.fastjson2.JSONObject;
+import com.lyh.trade.self_react.domain.FunctionTool;
 import com.lyh.trade.self_react.domain.message.AssistantMessage;
 import com.lyh.trade.self_react.domain.message.ToolMessage;
 import lombok.AllArgsConstructor;
@@ -9,6 +10,9 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -20,8 +24,9 @@ import java.util.concurrent.ConcurrentHashMap;
 public class ToolInvoker {
     private static final ConcurrentHashMap<String, ToolCallBack> toolMap = new ConcurrentHashMap<>();
 
-    public static void add(String name, Method method, Object object) {
-        toolMap.put(name, new ToolCallBack(method, object));
+    public static void add(FunctionTool.Function function, Method method, Object object) {
+        toolMap.put(function.getName(), new ToolCallBack(method, object,
+                function.getParameters()));
     }
 
     public static ToolMessage invoke(AssistantMessage.ToolCall toolCall) {
@@ -32,12 +37,29 @@ public class ToolInvoker {
         if (toolCallBack == null) {
             return null;
         }
+        //{"query":"贵州茅台最近3天利好消息"}
         JSONObject arguments = JSONObject.parse(function.getArguments());
-        Object[] params = new Object[arguments.size()];
-        int ind = 0;
+        //模型返回的各个参数的值
+        Map<String, Object> valueMap = new HashMap<>();
         for (Map.Entry<String, Object> entry : arguments.entrySet()) {
+            String key = entry.getKey();
+            //todo 模型返回参数值的类型和实际的参数类型对齐
             Object value = entry.getValue();
-            params[ind++] = value;
+            valueMap.put(key, value);
+        }
+        //真实的方法参数列表
+        final LinkedHashMap<String, FunctionTool.Function.Parameters.Property> methodParams =
+                toolCallBack.getParameters().getProperties();
+        Object[] params = new Object[methodParams.size()];
+        int ind = 0;
+        List<String> required = toolCallBack.getParameters().getRequired();
+        for (Map.Entry<String, FunctionTool.Function.Parameters.Property> entry : methodParams.entrySet()) {
+            if (required.contains(entry.getKey()) && !valueMap.containsKey(entry.getKey())) {
+                String msg = String.format("必须参数：%s，模型未返回，方法参数列表：%s，模型返回参数：%s",
+                        entry.getKey(), methodParams, function.getArguments());
+                throw new RuntimeException(msg);
+            }
+            params[ind++] = valueMap.get(entry.getKey());
         }
         Object toolResult = invoke(toolCallBack, params);
         log.info("工具调用结果：\n{}", toolResult);
@@ -48,9 +70,11 @@ public class ToolInvoker {
         try {
             return toolCallBack.getMethod().invoke(toolCallBack.getObject(), params);
         } catch (IllegalAccessException e) {
-            log.info("非法获取异常", e);
+            log.error("非法获取异常", e);
         } catch (InvocationTargetException e) {
-            log.info("执行异常", e);
+            log.error("执行异常", e);
+        } catch (Exception e) {
+            log.error("工具调用异常", e);
         }
         return null;
     }
@@ -60,5 +84,6 @@ public class ToolInvoker {
     public static class ToolCallBack {
         private Method method;
         private Object object;
+        private FunctionTool.Function.Parameters parameters;
     }
 }

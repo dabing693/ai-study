@@ -38,6 +38,7 @@ public class SelfReActAgent {
     public ChatResponse chat(String query) {
         ChatRequest request = ChatRequest.userMessage(query)
                 .model(model)
+                .enableThinking(false)
                 .addTool(toolBuilder.getTools());
         ChatResponse response = call(request);
         while (response.hasToolCalls()) {

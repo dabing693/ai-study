@@ -41,7 +41,7 @@ public class StockService {
             """)
     public String queryStock(@ToolParam(description = "股票查询条件") String stockQuery) {
         String res = request(stockQuery);
-        return StringUtils.hasLength(res) ? res : searchService.search(stockQuery);
+        return StringUtils.hasLength(res) ? res : searchService.search(stockQuery, null);
     }
 
     private String request(String query) {
