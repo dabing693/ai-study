@@ -40,14 +40,15 @@ public class SelfReActAgent {
     private MysqlMemory mysqlMemory;
 
     public ChatResponse chat(String query) {
-        ChatRequest request = ChatRequest.userMessage(query)
-                .model(model)
-                .enableThinking(false)
-                .maxMessageNum(maxMessageNum)
-                .addTool(toolBuilder.getTools());
         //历史消息
         List<Message> hisMessages = mysqlMemory.get(RequestContext.getSession(), maxMessageNum);
-        hisMessages.forEach(request::addMessage);
+        ChatRequest request = ChatRequest.hisMessage(hisMessages)
+                .maxMessageNum(maxMessageNum)
+                .userMessage(query)
+                .model(model)
+                .enableThinking(false)
+                .addTool(toolBuilder.getTools());
+
         ChatResponse response = call(request);
         while (response.hasToolCalls()) {
             //添加模型返回的assistant消息

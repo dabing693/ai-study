@@ -67,6 +67,7 @@ public class MysqlMemory {
                 throw new RuntimeException("未知消息类型：" + it.getType());
             }
             msg.setHis(true);
+            msg.setCreate(it.getTimestamp());
             msgList.add(msg);
         }
         return msgList;

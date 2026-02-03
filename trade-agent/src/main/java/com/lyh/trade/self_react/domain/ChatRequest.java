@@ -47,11 +47,16 @@ public class ChatRequest {
     @JsonInclude
     private int maxMessageNum = Integer.MAX_VALUE;
 
-    public static ChatRequest userMessage(String content) {
+    public static ChatRequest hisMessage(List<Message> hisMessages) {
         ChatRequest request = new ChatRequest();
-        UserMessage message = new UserMessage(content);
-        request.addMessage(message);
+        hisMessages.forEach(request::addMessage);
         return request;
+    }
+
+    public ChatRequest userMessage(String content) {
+        UserMessage message = new UserMessage(content);
+        this.addMessage(message);
+        return this;
     }
 
     public ChatRequest addTool(List<FunctionTool> tools) {
