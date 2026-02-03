@@ -26,13 +26,19 @@ import java.util.List;
 public class SelfReActAgent {
     @Value("${api.key:62d5b9049126430f9255d00f7a72c91e.qa240op6bmKv3Axq}")
     private String apiKey;
+    @Value("${glm.model:glm-4.5-flash}")
+    private String model;
     public static final String url = "https://open.bigmodel.cn/api/paas/v4/chat/completions";
     private final RestTemplate restTemplate;
     @Resource
     private ToolBuilder toolBuilder;
+    @Resource
+    private MysqlMemory mysqlMemory;
 
-    public ChatResponse chat(String query, String sessionId) {
-        ChatRequest request = ChatRequest.userMessage(query).addTool(toolBuilder.getTools());
+    public ChatResponse chat(String query) {
+        ChatRequest request = ChatRequest.userMessage(query)
+                .model(model)
+                .addTool(toolBuilder.getTools());
         ChatResponse response = call(request);
         while (response.hasToolCalls()) {
             //添加模型返回的assistant消息
@@ -45,6 +51,8 @@ public class SelfReActAgent {
             }
             response = call(request);
         }
+        //后处理
+        postHandle(request, response);
         return response;
     }
 
@@ -54,5 +62,10 @@ public class SelfReActAgent {
         log.info("请求: {}", JSONArray.toJSONString(request));
         HttpEntity<ChatRequest> httpEntity = new HttpEntity<>(request, requestHeaders);
         return restTemplate.postForObject(url, httpEntity, ChatResponse.class);
+    }
+
+    private void postHandle(ChatRequest request, ChatResponse response) {
+        mysqlMemory.addAll(request.getMessages());
+        mysqlMemory.add(response.getMessage());
     }
 }

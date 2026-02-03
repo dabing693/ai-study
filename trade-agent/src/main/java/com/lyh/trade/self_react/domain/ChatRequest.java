@@ -1,6 +1,8 @@
 package com.lyh.trade.self_react.domain;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.lyh.trade.self_react.RamMemory;
+import com.lyh.trade.self_react.RequestContext;
 import com.lyh.trade.self_react.domain.message.Message;
 import com.lyh.trade.self_react.domain.message.UserMessage;
 import lombok.Data;
@@ -34,7 +36,7 @@ public class ChatRequest {
     public static ChatRequest userMessage(String content) {
         ChatRequest request = new ChatRequest();
         UserMessage message = new UserMessage(content);
-        request.getMessages().add(message);
+        request.addMessage(message);
         return request;
     }
 
@@ -44,7 +46,13 @@ public class ChatRequest {
     }
 
     public ChatRequest addMessage(Message message) {
+        RamMemory.add(RequestContext.getSession(), message);
         this.messages.add(message);
+        return this;
+    }
+
+    public ChatRequest model(String model){
+        this.setModel(model);
         return this;
     }
 }

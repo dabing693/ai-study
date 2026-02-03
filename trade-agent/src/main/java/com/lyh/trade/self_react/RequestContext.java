@@ -1,0 +1,49 @@
+package com.lyh.trade.self_react;
+
+import lombok.Data;
+
+import java.util.Optional;
+
+/**
+ * @author lengYinHui
+ * @date 2026/2/3
+ */
+public class RequestContext {
+    /**
+     * 使用 final 保证引用不可变，static 保证全局唯一
+     */
+    private static final ThreadLocal<UserContext> USER_CONTEXT = ThreadLocal.withInitial(UserContext::new);
+
+    public static void setSession(String sessionId) {
+        USER_CONTEXT.set(UserContext.of(sessionId));
+    }
+
+    public static void setUser(UserContext user) {
+        USER_CONTEXT.set(user);
+    }
+
+    public static String getSession() {
+        return Optional.ofNullable(USER_CONTEXT.get())
+                .map(UserContext::getSessionId)
+                .orElse(null);
+    }
+
+    public static UserContext getUser() {
+        return USER_CONTEXT.get();
+    }
+
+    public static void clear() {
+        USER_CONTEXT.remove();
+    }
+
+    @Data
+    public static class UserContext {
+        private String sessionId;
+
+        public static UserContext of(String sessionId) {
+            final UserContext userContext = new UserContext();
+            userContext.setSessionId(sessionId);
+            return userContext;
+        }
+    }
+}

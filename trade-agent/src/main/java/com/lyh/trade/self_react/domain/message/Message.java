@@ -1,6 +1,9 @@
 package com.lyh.trade.self_react.domain.message;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Data;
+
+import java.time.LocalDateTime;
 
 /**
  * @author lengYinHui
@@ -10,6 +13,8 @@ import lombok.Data;
 public class Message {
     private String role;
     private String content;
+    @JsonIgnore
+    private LocalDateTime create = LocalDateTime.now();
 
     public Message() {
 
@@ -18,5 +23,9 @@ public class Message {
     public Message(String role, String content) {
         this.role = role;
         this.content = content;
+    }
+
+    public String storedContent() {
+        return this.content;
     }
 }

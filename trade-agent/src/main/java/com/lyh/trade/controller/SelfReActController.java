@@ -1,8 +1,10 @@
 package com.lyh.trade.controller;
 
+import com.lyh.trade.self_react.RequestContext;
 import com.lyh.trade.self_react.SelfReActAgent;
 import com.lyh.trade.self_react.domain.ChatResponse;
 import jakarta.annotation.Resource;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
@@ -18,12 +20,17 @@ public class SelfReActController {
     private SelfReActAgent selfReActAgent;
 
     @GetMapping("/chat")
-    public ChatResponse chat(@RequestParam("query") String query,
-                             @RequestHeader(value = "sessionId", required = false) String sessionId) {
+    public ResponseEntity<ChatResponse> chat(@RequestParam("query") String query,
+                                             @RequestHeader(value = "sessionId", required = false) String sessionId) {
         if (sessionId == null) {
             sessionId = UUID.randomUUID().toString().replace("-", "");
         }
-        ChatResponse response = selfReActAgent.chat(query, sessionId);
-        return response;
+        RequestContext.setSession(sessionId);
+        ChatResponse response = selfReActAgent.chat(query);
+        RequestContext.clear();
+        //将sessionId放入响应头
+        return ResponseEntity.ok()
+                .header("X-Session-Id", sessionId)
+                .body(response);
     }
 }

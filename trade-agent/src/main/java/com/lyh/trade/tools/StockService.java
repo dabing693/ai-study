@@ -8,6 +8,7 @@ import org.springframework.ai.tool.annotation.ToolParam;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestTemplate;
 
@@ -33,7 +34,11 @@ public class StockService {
         return request(selectStockCondition);
     }
 
-    @Tool(description = "查询指定股票的数据，比如其成交量、涨跌幅等行情数据，营业收入、利润等财务数据；不包含股票的市场新闻和公告等数据")
+    @Tool(description = """
+            查询指定股票的数据，比如其成交量、涨跌幅等行情数据，营业收入、利润等财务数据；不包含股票的市场新闻和公告等数据！
+            例句1：腾讯的成立时间
+            例句2：腾讯的成交量、市值、换手率
+            """)
     public String queryStock(@ToolParam(description = "股票查询条件") String stockQuery) {
         String res = request(stockQuery);
         return StringUtils.hasLength(res) ? res : searchService.search(stockQuery);
@@ -66,7 +71,7 @@ public class StockService {
                 .map(SearchCodeDTO::getData)
                 .map(SearchCodeDTO.Data::getResult)
                 .orElse(null);
-        if (result == null) {
+        if (result == null || CollectionUtils.isEmpty(result.getDataList())) {
             return "";
         }
         List<SearchCodeDTO.Data.Result.Column> columns = result.getColumns()
