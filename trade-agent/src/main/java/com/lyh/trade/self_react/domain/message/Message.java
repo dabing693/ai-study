@@ -15,6 +15,8 @@ public class Message {
     private String content;
     @JsonIgnore
     private LocalDateTime create = LocalDateTime.now();
+    @JsonIgnore
+    private boolean his;
 
     public Message() {
 

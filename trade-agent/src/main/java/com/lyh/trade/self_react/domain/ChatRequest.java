@@ -1,5 +1,6 @@
 package com.lyh.trade.self_react.domain;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.lyh.trade.self_react.RamMemory;
 import com.lyh.trade.self_react.RequestContext;
@@ -34,6 +35,18 @@ public class ChatRequest {
     private double topP = 0.9;
     private String user = "user";
 
+    /**
+     * 以下是业务参数
+     *
+     * @param content
+     * @return
+     */
+    /**
+     * 最大的消息数
+     */
+    @JsonInclude
+    private int maxMessageNum = Integer.MAX_VALUE;
+
     public static ChatRequest userMessage(String content) {
         ChatRequest request = new ChatRequest();
         UserMessage message = new UserMessage(content);
@@ -49,6 +62,10 @@ public class ChatRequest {
     public ChatRequest addMessage(Message message) {
         RamMemory.add(RequestContext.getSession(), message);
         this.messages.add(message);
+        while (this.messages.size() > maxMessageNum) {
+            //todo 避免新消息被删除，导致没写入数据库
+            this.messages.remove(0);
+        }
         return this;
     }
 
@@ -63,6 +80,11 @@ public class ChatRequest {
         } else {
             this.getThinking().setType("disabled");
         }
+        return this;
+    }
+
+    public ChatRequest maxMessageNum(int num) {
+        this.maxMessageNum = num;
         return this;
     }
 

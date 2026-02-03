@@ -1,6 +1,7 @@
 package com.lyh.trade.self_react.domain.message;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.lyh.trade.self_react.enums.MessageType;
 import lombok.Data;
 
 /**
@@ -13,7 +14,7 @@ public class ToolMessage extends Message {
     private String toolCallId;
 
     public ToolMessage(String content, String toolCallId) {
-        super("tool", content);
+        super(MessageType.tool.name(), content);
         this.toolCallId = toolCallId;
     }
 

@@ -4,6 +4,7 @@ import com.alibaba.fastjson2.JSONArray;
 import com.lyh.trade.self_react.domain.ChatRequest;
 import com.lyh.trade.self_react.domain.ChatResponse;
 import com.lyh.trade.self_react.domain.message.AssistantMessage;
+import com.lyh.trade.self_react.domain.message.Message;
 import com.lyh.trade.self_react.domain.message.ToolMessage;
 import jakarta.annotation.Resource;
 import lombok.RequiredArgsConstructor;
@@ -15,6 +16,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * @author lengYinHui
@@ -28,6 +30,8 @@ public class SelfReActAgent {
     private String apiKey;
     @Value("${glm.model:glm-4.5-flash}")
     private String model;
+    @Value("${max.message.num:20}")
+    private Integer maxMessageNum;
     public static final String url = "https://open.bigmodel.cn/api/paas/v4/chat/completions";
     private final RestTemplate restTemplate;
     @Resource
@@ -39,7 +43,11 @@ public class SelfReActAgent {
         ChatRequest request = ChatRequest.userMessage(query)
                 .model(model)
                 .enableThinking(false)
+                .maxMessageNum(maxMessageNum)
                 .addTool(toolBuilder.getTools());
+        //历史消息
+        List<Message> hisMessages = mysqlMemory.get(RequestContext.getSession(), maxMessageNum);
+        hisMessages.forEach(request::addMessage);
         ChatResponse response = call(request);
         while (response.hasToolCalls()) {
             //添加模型返回的assistant消息
@@ -66,7 +74,11 @@ public class SelfReActAgent {
     }
 
     private void postHandle(ChatRequest request, ChatResponse response) {
-        mysqlMemory.addAll(request.getMessages());
-        mysqlMemory.add(response.getMessage());
+        List<Message> totalMsg = request.getMessages().stream()
+                //非历史消息才保存
+                .filter(it -> !it.isHis())
+                .collect(Collectors.toList());
+        totalMsg.add(response.getMessage());
+        mysqlMemory.addAll(totalMsg);
     }
 }

@@ -1,7 +1,7 @@
 package com.lyh.trade.self_react.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.lyh.trade.self_react.domain.dao.LlmMemory;
+import com.lyh.trade.self_react.domain.DO.LlmMemory;
 import org.apache.ibatis.annotations.Mapper;
 
 /**

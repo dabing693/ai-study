@@ -24,10 +24,12 @@ public class ToolConfig {
             AccountService accountService,
             StockService stockService,
             FundService fundService,
-            SearchService searchService
+            SearchService searchService,
+            DateTool dateTool
     ) {
         return MethodToolCallbackProvider.builder()
-                .toolObjects(weatherService, accountService, stockService, fundService, searchService)
+                .toolObjects(weatherService, accountService, stockService, fundService, searchService,
+                        dateTool)
                 .build();
     }
 
@@ -37,9 +39,11 @@ public class ToolConfig {
             AccountService accountService,
             StockService stockService,
             FundService fundService,
-            SearchService searchService
+            SearchService searchService,
+            DateTool dateTool
     ) {
-        return new ToolBuilder(weatherService, accountService, stockService, fundService, searchService);
+        return new ToolBuilder(weatherService, accountService, stockService, fundService, searchService,
+                dateTool);
     }
 
     @Bean

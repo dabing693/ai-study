@@ -3,6 +3,7 @@ package com.lyh.trade.self_react.domain.message;
 import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.lyh.trade.self_react.enums.MessageType;
 import lombok.Data;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
@@ -25,7 +26,7 @@ public class AssistantMessage extends Message {
     }
 
     public AssistantMessage(String content) {
-        super("assistant", content);
+        super(MessageType.assistant.name(), content);
     }
 
     @Data
