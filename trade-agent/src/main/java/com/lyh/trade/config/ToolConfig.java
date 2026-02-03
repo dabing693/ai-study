@@ -1,6 +1,7 @@
 package com.lyh.trade.config;
 
 
+import com.lyh.trade.self_react.ToolBuilder;
 import com.lyh.trade.tools.*;
 import org.springframework.ai.tool.ToolCallbackProvider;
 import org.springframework.ai.tool.method.MethodToolCallbackProvider;
@@ -18,7 +19,7 @@ import org.springframework.web.client.RestTemplate;
 public class ToolConfig {
 
     @Bean
-    public ToolCallbackProvider myTools(
+    public ToolCallbackProvider springAITools(
             WeatherService weatherService,
             AccountService accountService,
             StockService stockService,
@@ -28,6 +29,17 @@ public class ToolConfig {
         return MethodToolCallbackProvider.builder()
                 .toolObjects(weatherService, accountService, stockService, fundService, searchService)
                 .build();
+    }
+
+    @Bean
+    public ToolBuilder myTools(
+            WeatherService weatherService,
+            AccountService accountService,
+            StockService stockService,
+            FundService fundService,
+            SearchService searchService
+    ) {
+        return new ToolBuilder(weatherService, accountService, stockService, fundService, searchService);
     }
 
     @Bean

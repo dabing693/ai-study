@@ -63,6 +63,10 @@
                     <configuration>
                         <source>17</source>
                         <target>17</target>
+                        <compilerArgs>
+                            <!--解决StandardReflectionParameterNameDiscoverer 参数名获取失败-->
+                            <arg>-parameters</arg>
+                        </compilerArgs>
                     </configuration>
                 </plugin>
             </plugins>
