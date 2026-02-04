@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.lyh.trade.self_react.RamMemory;
 import com.lyh.trade.self_react.RequestContext;
 import com.lyh.trade.self_react.domain.message.Message;
+import com.lyh.trade.self_react.domain.message.SystemMessage;
 import com.lyh.trade.self_react.domain.message.UserMessage;
 import lombok.Data;
 
@@ -47,16 +48,17 @@ public class ChatRequest {
     @JsonInclude
     private int maxMessageNum = Integer.MAX_VALUE;
 
-    public static ChatRequest hisMessage(List<Message> hisMessages) {
+    public static ChatRequest initMessage(String systemPrompt,
+                                          List<Message> hisMessages,
+                                          String query,
+                                          int maxMessageNum) {
         ChatRequest request = new ChatRequest();
+        //先设置最大消息数
+        request.setMaxMessageNum(maxMessageNum);
+        request.addMessage(new SystemMessage(systemPrompt));
         hisMessages.forEach(request::addMessage);
+        request.addMessage(new UserMessage(query));
         return request;
-    }
-
-    public ChatRequest userMessage(String content) {
-        UserMessage message = new UserMessage(content);
-        this.addMessage(message);
-        return this;
     }
 
     public ChatRequest addTool(List<FunctionTool> tools) {
@@ -67,9 +69,12 @@ public class ChatRequest {
     public ChatRequest addMessage(Message message) {
         RamMemory.add(RequestContext.getSession(), message);
         this.messages.add(message);
-        while (this.messages.size() > maxMessageNum) {
+        if (this.messages.size() > maxMessageNum) {
             //todo 避免新消息被删除，导致没写入数据库
-            this.messages.remove(0);
+            List<Message> subMessages = this.getMessages().subList(this.messages.size() - maxMessageNum + 1,
+                    this.messages.size());
+            //System Prompt放第一条
+            subMessages.add(0, this.messages.get(0));
         }
         return this;
     }
@@ -85,11 +90,6 @@ public class ChatRequest {
         } else {
             this.getThinking().setType("disabled");
         }
-        return this;
-    }
-
-    public ChatRequest maxMessageNum(int num) {
-        this.maxMessageNum = num;
         return this;
     }
 

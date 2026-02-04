@@ -31,9 +31,8 @@ public class ToolInvoker {
 
     public static ToolMessage invoke(AssistantMessage.ToolCall toolCall) {
         AssistantMessage.ToolCall.Function function = toolCall.getFunction();
-        String toolName = function.getName();
-        log.info("调用工具：{}", toolName);
-        ToolCallBack toolCallBack = toolMap.get(toolName);
+        log.info("调用工具：{}，参数：{}", function.getName(), function.getArguments());
+        ToolCallBack toolCallBack = toolMap.get(function.getName());
         if (toolCallBack == null) {
             return null;
         }

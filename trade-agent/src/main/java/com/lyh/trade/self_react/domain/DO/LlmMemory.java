@@ -1,5 +1,7 @@
 package com.lyh.trade.self_react.domain.DO;
 
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableId;
 import com.lyh.trade.self_react.enums.MessageType;
 import lombok.Data;
 
@@ -7,6 +9,7 @@ import java.time.LocalDateTime;
 
 @Data
 public class LlmMemory {
+    @TableId(type = IdType.AUTO)
     private Integer id;
     private String conversationId;
     private String content;

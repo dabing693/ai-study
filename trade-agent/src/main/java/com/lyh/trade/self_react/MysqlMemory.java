@@ -44,6 +44,8 @@ public class MysqlMemory {
     public List<Message> get(String uniqueId, Integer limit) {
         QueryWrapper<LlmMemory> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("conversation_id", uniqueId);
+        //不查系统提示词
+        queryWrapper.ne("type", MessageType.system.name());
         //按时间降序排序 优先取最先的
         queryWrapper.orderByDesc("timestamp");
         queryWrapper.last("limit " + limit);
