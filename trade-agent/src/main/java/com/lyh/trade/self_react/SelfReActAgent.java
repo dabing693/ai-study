@@ -6,6 +6,7 @@ import com.lyh.trade.self_react.domain.ChatResponse;
 import com.lyh.trade.self_react.domain.message.AssistantMessage;
 import com.lyh.trade.self_react.domain.message.Message;
 import com.lyh.trade.self_react.domain.message.ToolMessage;
+import com.lyh.trade.self_react.enums.MemoryStrategy;
 import com.lyh.trade.tools.DateTimeTool;
 import jakarta.annotation.Resource;
 import lombok.RequiredArgsConstructor;
@@ -35,7 +36,7 @@ public class SelfReActAgent {
     private String apiKey;
     @Value("${glm.model:glm-4.5-flash}")
     private String model;
-    @Value("${max.message.num:20}")
+    @Value("${max.message.num:30}")
     private Integer maxMessageNum;
     public static final String url = "https://open.bigmodel.cn/api/paas/v4/chat/completions";
     private final RestTemplate restTemplate;
@@ -48,7 +49,8 @@ public class SelfReActAgent {
 
     public ChatResponse chat(String query) {
         //历史消息
-        List<Message> hisMessages = mysqlMemory.get(RequestContext.getSession(), maxMessageNum);
+        List<Message> hisMessages = mysqlMemory.get(RequestContext.getSession(), maxMessageNum,
+                query, MemoryStrategy.semantic_call);
         ChatRequest request = ChatRequest.initMessage(systemPrompt(), hisMessages, query, maxMessageNum)
                 .model(model)
                 .enableThinking(false)

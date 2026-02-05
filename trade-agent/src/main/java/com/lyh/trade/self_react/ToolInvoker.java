@@ -31,7 +31,7 @@ public class ToolInvoker {
 
     public static ToolMessage invoke(AssistantMessage.ToolCall toolCall) {
         AssistantMessage.ToolCall.Function function = toolCall.getFunction();
-        log.info("调用工具：{}，参数：{}", function.getName(), function.getArguments());
+        log.info("\n调用工具：{}，参数：{}", function.getName(), function.getArguments());
         ToolCallBack toolCallBack = toolMap.get(function.getName());
         if (toolCallBack == null) {
             return null;
@@ -61,7 +61,7 @@ public class ToolInvoker {
             params[ind++] = valueMap.get(entry.getKey());
         }
         Object toolResult = invoke(toolCallBack, params);
-        log.info("工具调用结果：\n{}", toolResult);
+        log.info("\n工具调用结果：\n{}", toolResult);
         return new ToolMessage(ToolMessage.strContent(toolResult), toolCall.getId());
     }
 
