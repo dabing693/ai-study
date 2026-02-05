@@ -17,7 +17,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Service
-public class SearchService {
+public class SearchTool {
     @Value("${tavily.api.key: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}")
     private String tavilyApiKey;
     @Autowired

@@ -19,9 +19,9 @@ import java.util.stream.Collectors;
  * @date 2026/1/25
  */
 @Service
-public class FundService {
+public class FundTool {
     @Autowired
-    private SearchService searchService;
+    private SearchTool searchTool;
     @Autowired
     private RestTemplate restTemplate;
     private static final String URL = "https://np-tjxg-b.eastmoney.com/api/smart-tag/fund/v3/pw/search-code";
@@ -36,7 +36,7 @@ public class FundService {
     @Tool(description = "查询指定基金的数据")
     public String queryFund(@ToolParam(description = "基金查询条件") String fundQuery) {
         String res = request(fundQuery);
-        return StringUtils.hasLength(res) ? res : searchService.search(fundQuery, null);
+        return StringUtils.hasLength(res) ? res : searchTool.search(fundQuery, null);
     }
 
     private String request(String query) {

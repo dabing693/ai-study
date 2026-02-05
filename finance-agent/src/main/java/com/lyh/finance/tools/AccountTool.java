@@ -11,7 +11,7 @@ import org.springframework.stereotype.Service;
  * @date 2026/1/23
  */
 @Service
-public class AccountService {
+public class AccountTool {
     /**
      * 1、资产分布信息
      * 入参：资金账号

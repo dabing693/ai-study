@@ -19,9 +19,9 @@ import java.util.stream.Collectors;
  * @date 2026/1/25
  */
 @Service
-public class StockService {
+public class StockTool {
     @Autowired
-    private SearchService searchService;
+    private SearchTool searchTool;
     @Autowired
     private RestTemplate restTemplate;
     private static final String URL = "https://np-tjxg-b.eastmoney.com/api/smart-tag/stock/v3/pw/search-code";
@@ -40,7 +40,7 @@ public class StockService {
             """)
     public String queryStock(@ToolParam(description = "股票查询条件") String stockQuery) {
         String res = request(stockQuery);
-        return StringUtils.hasLength(res) ? res : searchService.search(stockQuery, null);
+        return StringUtils.hasLength(res) ? res : searchTool.search(stockQuery, null);
     }
 
     private String request(String query) {

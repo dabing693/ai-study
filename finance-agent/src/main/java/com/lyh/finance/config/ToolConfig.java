@@ -1,6 +1,5 @@
 package com.lyh.finance.config;
 
-
 import com.lyh.finance.tool.ToolBuilder;
 import com.lyh.finance.tools.*;
 import org.springframework.context.annotation.Bean;
@@ -14,17 +13,14 @@ import org.springframework.stereotype.Component;
  */
 @Component
 public class ToolConfig {
-
     @Bean
     public ToolBuilder myTools(
-            WeatherService weatherService,
-            AccountService accountService,
-            StockService stockService,
-            FundService fundService,
-            SearchService searchService,
-            DateTimeTool dateTimeTool
+            DateTimeTool dateTimeTool,
+            AccountTool accountTool,
+            StockTool stockTool,
+            FundTool fundTool,
+            SearchTool searchTool
     ) {
-        return new ToolBuilder(weatherService, accountService, stockService, fundService, searchService,
-                dateTimeTool);
+        return new ToolBuilder(dateTimeTool, accountTool, stockTool, fundTool, searchTool);
     }
 }
