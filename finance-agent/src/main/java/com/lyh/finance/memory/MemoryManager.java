@@ -44,18 +44,15 @@ public class MemoryManager {
         //去除系统提示词和用户提示词
         int maxHisMsg = memoryProperty.getMaxMessageNum() - 2;
         if (hisMessages.size() > maxHisMsg) {
-            //todo 避免新消息被删除，导致没写入数据库
             hisMessages = hisMessages.subList(hisMessages.size() - maxHisMsg, hisMessages.size());
         }
         return hisMessages;
     }
 
-    public void saveMemory(List<Message> messages) {
-        List<Message> newMessages = messages.stream()
-                //非历史消息才保存
-                .filter(it -> !it.isHis())
-                .collect(Collectors.toList());
+    public void saveMemory(List<Message> newMessages) {
         List<LlmMemory> llmMemories = mysqlMemoryRepository.add(RequestContext.getSession(), newMessages);
+        //存完数据库，就变成历史消息了
+        newMessages.forEach(it -> it.setHis(true));
         //异步存入向量数据库
         milvusThreadPool.execute(() -> milvusMemoryRepository.add(RequestContext.getSession(), llmMemories));
     }

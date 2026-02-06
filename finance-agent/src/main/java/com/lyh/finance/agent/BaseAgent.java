@@ -30,4 +30,16 @@ public abstract class BaseAgent {
     public abstract List<Message> action(List<AssistantMessage.ToolCall> toolCalls);
 
     public abstract SystemMessage systemMessage();
+
+    protected void addAndSave(List<Message> messages, Message message) {
+        addAndSave(messages, List.of(message));
+    }
+
+    protected void addAndSave(List<Message> messages, List<Message> newMessages) {
+        if (newMessages == null || newMessages.isEmpty()) {
+            return;
+        }
+        messages.addAll(newMessages);
+        memoryManager.saveMemory(newMessages);
+    }
 }

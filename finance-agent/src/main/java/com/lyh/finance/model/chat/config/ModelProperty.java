@@ -8,8 +8,8 @@ import lombok.Data;
  */
 @Data
 public class ModelProperty {
-    private String baseUrl;
+    private String baseUrl = "https://open.bigmodel.cn/api/paas/v4/chat/completions";
     private String apiKey;
-    private String modelName;
-    private Boolean enableThinking;
+    private String modelName = "glm-4.5-flash";
+    private Boolean enableThinking = true;
 }
