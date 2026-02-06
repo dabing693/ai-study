@@ -15,6 +15,10 @@ import org.springframework.stereotype.Component;
 @AllArgsConstructor
 public class MemoryQuery {
     private String conversationId;
-    private Integer limit;
     private String query;
+    private Integer limit;
+    /**
+     * 最小的相关性分数
+     */
+    private Double minScore;
 }

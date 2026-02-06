@@ -1,7 +1,8 @@
-package com.lyh.finance.embedding;
+package com.lyh.finance.model.embedding.impl;
 
 import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
+import com.lyh.finance.model.embedding.EmbeddingModel;
 import jakarta.annotation.Resource;
 import lombok.Data;
 import org.springframework.stereotype.Component;
@@ -16,7 +17,7 @@ import java.util.Optional;
  * @date 2026/2/5
  */
 @Component
-public class GeminiEmbed {
+public class GeminiEmbeddingModel extends EmbeddingModel {
     public static final String EMBEDDING_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:embedContent?key=AIzaSyCOUdoD13IVOgvYV6zZaEh7Eypns4ypo2M";
     @Resource
     private RestTemplate proxyRestTemplate;

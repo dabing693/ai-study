@@ -1,4 +1,4 @@
-package com.lyh.finance.model.config;
+package com.lyh.finance.model.chat.config;
 
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;

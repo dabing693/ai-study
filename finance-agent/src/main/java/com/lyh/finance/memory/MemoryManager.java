@@ -31,8 +31,8 @@ public class MemoryManager {
 
     public List<Message> loadMemory(String userMessage) {
         MemoryStrategy strategy = MemoryStrategy.valueOf(memoryProperty.getStrategy());
-        MemoryQuery query = new MemoryQuery(RequestContext.getSession(),
-                memoryProperty.getMaxMessageNum(), userMessage);
+        MemoryQuery query = new MemoryQuery(RequestContext.getSession(), userMessage,
+                memoryProperty.getMaxMessageNum(), memoryProperty.getMinScore());
         //历史消息
         List<Message> hisMessages = new ArrayList<>();
         if (Objects.equals(strategy, MemoryStrategy.sliding_window)) {

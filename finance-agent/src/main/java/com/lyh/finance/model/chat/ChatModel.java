@@ -1,9 +1,9 @@
-package com.lyh.finance.model;
+package com.lyh.finance.model.chat;
 
 import com.lyh.finance.domain.ChatResponse;
 import com.lyh.finance.domain.FunctionTool;
 import com.lyh.finance.domain.message.Message;
-import com.lyh.finance.model.config.ModelProperty;
+import com.lyh.finance.model.chat.config.ModelProperty;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.List;

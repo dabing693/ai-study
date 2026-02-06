@@ -1,9 +1,9 @@
 package com.lyh.finance.config;
 
-import com.lyh.finance.model.ChatModel;
-import com.lyh.finance.model.config.ModelProperty;
-import com.lyh.finance.model.config.ZhiPuModelProperty;
-import com.lyh.finance.model.impl.ZhiPuChatModel;
+import com.lyh.finance.model.chat.ChatModel;
+import com.lyh.finance.model.chat.config.ModelProperty;
+import com.lyh.finance.model.chat.config.ZhiPuModelProperty;
+import com.lyh.finance.model.chat.impl.ZhiPuChatModel;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;

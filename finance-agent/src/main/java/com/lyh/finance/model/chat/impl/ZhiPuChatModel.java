@@ -1,12 +1,12 @@
-package com.lyh.finance.model.impl;
+package com.lyh.finance.model.chat.impl;
 
 import com.alibaba.fastjson2.JSONArray;
 import com.lyh.finance.domain.ChatRequest;
 import com.lyh.finance.domain.ChatResponse;
 import com.lyh.finance.domain.FunctionTool;
 import com.lyh.finance.domain.message.Message;
-import com.lyh.finance.model.ChatModel;
-import com.lyh.finance.model.config.ModelProperty;
+import com.lyh.finance.model.chat.ChatModel;
+import com.lyh.finance.model.chat.config.ModelProperty;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;

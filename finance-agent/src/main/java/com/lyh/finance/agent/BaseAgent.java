@@ -5,7 +5,7 @@ import com.lyh.finance.domain.message.AssistantMessage;
 import com.lyh.finance.domain.message.Message;
 import com.lyh.finance.domain.message.SystemMessage;
 import com.lyh.finance.memory.MemoryManager;
-import com.lyh.finance.model.ChatModel;
+import com.lyh.finance.model.chat.ChatModel;
 import com.lyh.finance.tool.ToolManager;
 import lombok.RequiredArgsConstructor;
 

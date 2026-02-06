@@ -3,7 +3,7 @@ package com.lyh.finance.agent;
 import com.lyh.finance.domain.ChatResponse;
 import com.lyh.finance.domain.message.*;
 import com.lyh.finance.memory.MemoryManager;
-import com.lyh.finance.model.ChatModel;
+import com.lyh.finance.model.chat.ChatModel;
 import com.lyh.finance.tool.ToolManager;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;

@@ -18,4 +18,5 @@ public class MemoryProperty {
      * @see com.lyh.finance.enums.MemoryStrategy
      */
     private String strategy;
+    private Double minScore;
 }
