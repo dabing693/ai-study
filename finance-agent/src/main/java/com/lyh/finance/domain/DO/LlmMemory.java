@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
 @Data
 public class LlmMemory {
     @TableId(type = IdType.AUTO)
-    private Integer id;
+    private Long id;
     private String conversationId;
     private String content;
     private MessageType type;

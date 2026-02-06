@@ -14,7 +14,7 @@ import java.util.UUID;
  * @date 2026/2/3
  */
 @RestController
-@RequestMapping("/self_react")
+@RequestMapping("/react")
 public class ReActController {
     @Resource
     private ReActAgent reActAgent;
