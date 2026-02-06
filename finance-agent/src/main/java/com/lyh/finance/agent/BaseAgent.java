@@ -1,6 +1,6 @@
 package com.lyh.finance.agent;
 
-import com.lyh.finance.agent.property.AgentProperty;
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.lyh.finance.domain.ChatResponse;
 import com.lyh.finance.domain.message.AssistantMessage;
 import com.lyh.finance.domain.message.Message;
@@ -10,6 +10,8 @@ import com.lyh.finance.model.chat.ChatModel;
 import com.lyh.finance.tool.ToolManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.Resource;
 import org.springframework.util.FileCopyUtils;
 
 import java.io.InputStreamReader;
@@ -22,11 +24,10 @@ import java.util.List;
  */
 @Slf4j
 @RequiredArgsConstructor
-public abstract class BaseAgent<PROPERTY extends AgentProperty> {
+public abstract class BaseAgent {
     protected final ChatModel chatModel;
     protected final MemoryManager memoryManager;
     protected final ToolManager toolManager;
-    protected final PROPERTY agentProperty;
 
     public String send(String query) {
         return chat(query).getReply();
@@ -42,8 +43,11 @@ public abstract class BaseAgent<PROPERTY extends AgentProperty> {
 
     public SystemMessage systemMessage() {
         try {
+            String promptFile = PropertyNamingStrategies.KEBAB_CASE.nameForField(null, null,
+                    this.getClass().getSimpleName().replace("Agent", "")) + ".txt";
+            Resource promptResource = new ClassPathResource("prompt/" + promptFile);
             InputStreamReader reader = new InputStreamReader(
-                    agentProperty.getPromptFile().getInputStream(), StandardCharsets.UTF_8);
+                    promptResource.getInputStream(), StandardCharsets.UTF_8);
             String template = FileCopyUtils.copyToString(reader);
             return new SystemMessage(template);
         } catch (Exception e) {

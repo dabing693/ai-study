@@ -1,6 +1,5 @@
 package com.lyh.finance.agent;
 
-import com.lyh.finance.agent.property.SimpleAgentProperty;
 import com.lyh.finance.domain.ChatResponse;
 import com.lyh.finance.domain.message.AssistantMessage;
 import com.lyh.finance.domain.message.Message;
@@ -16,13 +15,12 @@ import java.util.List;
  * @author lengYinHui
  * @date 2026/2/6
  */
-public class SimpleAgent extends BaseAgent<SimpleAgentProperty> {
+public abstract class SimpleAgent extends BaseAgent {
     public SimpleAgent(ChatModel chatModel,
                        MemoryManager memoryManager,
-                       ToolManager toolManager,
-                       SimpleAgentProperty agentProperty
+                       ToolManager toolManager
     ) {
-        super(chatModel, memoryManager, toolManager, agentProperty);
+        super(chatModel, memoryManager, toolManager);
     }
 
     @Override

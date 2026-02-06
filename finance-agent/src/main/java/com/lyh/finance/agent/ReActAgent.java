@@ -1,17 +1,16 @@
 package com.lyh.finance.agent;
 
-import com.lyh.finance.agent.property.ReActAgentProperty;
 import com.lyh.finance.domain.ChatResponse;
-import com.lyh.finance.domain.message.*;
+import com.lyh.finance.domain.message.AssistantMessage;
+import com.lyh.finance.domain.message.Message;
+import com.lyh.finance.domain.message.ToolMessage;
+import com.lyh.finance.domain.message.UserMessage;
 import com.lyh.finance.memory.MemoryManager;
 import com.lyh.finance.model.chat.ChatModel;
 import com.lyh.finance.tool.ToolManager;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
-import org.springframework.util.FileCopyUtils;
 
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -21,20 +20,21 @@ import java.util.List;
  */
 @Slf4j
 @Component
-public abstract class ReActAgent extends BaseAgent<ReActAgentProperty> {
+public abstract class ReActAgent extends BaseAgent {
     public ReActAgent(ChatModel chatModel,
                       MemoryManager memoryManager,
-                      ToolManager toolManager,
-                      ReActAgentProperty agentProperty
+                      ToolManager toolManager
     ) {
-        super(chatModel, memoryManager, toolManager, agentProperty);
+        super(chatModel, memoryManager, toolManager);
     }
+
+    private static final int MAX_LOOP_NUM = 10;
 
     @Override
     public ChatResponse chat(String query) {
         List<Message> messageList = sense(query);
         ChatResponse planResponse = null;
-        for (int i = 0; i < agentProperty.getMaxLoopNum(); i++) {
+        for (int i = 0; i < getMaxLoopNum(); i++) {
             planResponse = plan(messageList);
             //添加模型返回的assistant消息
             addAndSave(messageList, planResponse.getMessage());
@@ -94,5 +94,9 @@ public abstract class ReActAgent extends BaseAgent<ReActAgentProperty> {
             toolMessageList.add(toolMessage);
         }
         return toolMessageList;
+    }
+
+    protected int getMaxLoopNum() {
+        return MAX_LOOP_NUM;
     }
 }
