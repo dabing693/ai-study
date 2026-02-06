@@ -69,4 +69,13 @@ public class ChatResponse {
                 .map(Choice::getMessage)
                 .orElse(null);
     }
+
+    public String getReply() {
+        return Optional.ofNullable(this.choices)
+                .filter(it -> !CollectionUtils.isEmpty(it))
+                .map(it -> it.get(0))
+                .map(Choice::getMessage)
+                .map(AssistantMessage::getContent)
+                .orElse(null);
+    }
 }

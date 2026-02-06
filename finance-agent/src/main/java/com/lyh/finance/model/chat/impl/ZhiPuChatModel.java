@@ -6,10 +6,11 @@ import com.lyh.finance.domain.ChatResponse;
 import com.lyh.finance.domain.FunctionTool;
 import com.lyh.finance.domain.message.Message;
 import com.lyh.finance.model.chat.ChatModel;
-import com.lyh.finance.model.chat.config.ModelProperty;
+import com.lyh.finance.model.chat.property.ModelProperty;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
+import org.springframework.util.CollectionUtils;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.List;
@@ -34,7 +35,9 @@ public class ZhiPuChatModel extends ChatModel {
         request.setMessages(messages);
         request.setModel(modelProperty.getModelName());
         request.setEnableThinking(modelProperty.getEnableThinking());
-        request.setTools(tools);
+        if (!CollectionUtils.isEmpty(tools)){
+            request.setTools(tools);
+        }
         //调用模型
         return call(request);
     }

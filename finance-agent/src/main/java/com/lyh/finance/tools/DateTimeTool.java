@@ -12,7 +12,7 @@ import java.util.Date;
  */
 @Component
 public class DateTimeTool {
-    private static final String DATE_FORMAT_PATTERN = "yyyy-MM-dd HH:mm:ss SSS";
+    private static final String DATE_FORMAT_PATTERN = "yyyy-MM-dd HH:mm:ss.SSS";
 
     @Tool(description = "获取当前的日期及时间，格式：" + DATE_FORMAT_PATTERN)
     public String currentDateTime() {

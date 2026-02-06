@@ -3,12 +3,14 @@ package com.lyh.finance.context;
 import lombok.Data;
 
 import java.util.Optional;
+import java.util.UUID;
 
 /**
  * @author lengYinHui
  * @date 2026/2/3
  */
 public class RequestContext {
+    private static final String TEST_PREFIX = "test_";
     /**
      * 使用 final 保证引用不可变，static 保证全局唯一
      */
@@ -25,7 +27,7 @@ public class RequestContext {
     public static String getSession() {
         return Optional.ofNullable(USER_CONTEXT.get())
                 .map(UserContext::getSessionId)
-                .orElse(null);
+                .orElse(TEST_PREFIX + System.currentTimeMillis());
     }
 
     public static UserContext getUser() {

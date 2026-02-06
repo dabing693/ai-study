@@ -1,17 +1,18 @@
 package com.lyh.finance.agent;
 
+import com.lyh.finance.agent.property.ReActAgentProperty;
 import com.lyh.finance.domain.ChatResponse;
 import com.lyh.finance.domain.message.*;
 import com.lyh.finance.memory.MemoryManager;
 import com.lyh.finance.model.chat.ChatModel;
 import com.lyh.finance.tool.ToolManager;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import org.springframework.util.FileCopyUtils;
 
-import java.text.SimpleDateFormat;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
 /**
@@ -20,23 +21,20 @@ import java.util.List;
  */
 @Slf4j
 @Component
-public class ReActAgent extends BaseAgent {
-    private static final String system_prompt = """
-            你是一个乐于助人的金融领域专家，你善于利用各种工具解决用户的问题。
-            当前时间：{cur_date_time}
-            """;
-    @Value("${max.loop.num:10}")
-    private Integer maxLoopNum;
-
-    public ReActAgent(ChatModel chatModel, MemoryManager memoryManager, ToolManager toolManager) {
-        super(chatModel, memoryManager, toolManager);
+public abstract class ReActAgent extends BaseAgent<ReActAgentProperty> {
+    public ReActAgent(ChatModel chatModel,
+                      MemoryManager memoryManager,
+                      ToolManager toolManager,
+                      ReActAgentProperty agentProperty
+    ) {
+        super(chatModel, memoryManager, toolManager, agentProperty);
     }
 
     @Override
     public ChatResponse chat(String query) {
         List<Message> messageList = sense(query);
         ChatResponse planResponse = null;
-        for (int i = 0; i < maxLoopNum; i++) {
+        for (int i = 0; i < agentProperty.getMaxLoopNum(); i++) {
             planResponse = plan(messageList);
             //添加模型返回的assistant消息
             addAndSave(messageList, planResponse.getMessage());
@@ -96,11 +94,5 @@ public class ReActAgent extends BaseAgent {
             toolMessageList.add(toolMessage);
         }
         return toolMessageList;
-    }
-
-    @Override
-    public SystemMessage systemMessage() {
-        return new SystemMessage(system_prompt.replace("{cur_date_time}",
-                new SimpleDateFormat("yyyy-MM-dd HH:mm:ss SSS").format(new Date())));
     }
 }
