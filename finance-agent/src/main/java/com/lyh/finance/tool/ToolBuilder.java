@@ -3,12 +3,15 @@ package com.lyh.finance.tool;
 import com.lyh.finance.annotation.Tool;
 import com.lyh.finance.annotation.ToolParam;
 import com.lyh.finance.domain.FunctionTool;
+import lombok.AllArgsConstructor;
+import lombok.Data;
 import org.springframework.core.StandardReflectionParameterNameDiscoverer;
 import org.springframework.util.StringUtils;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * @author lengYinHui
@@ -16,15 +19,26 @@ import java.util.*;
  */
 public class ToolBuilder {
     private final List<Object> toolObjects;
+    //对应模型工具调用的参数
     private final List<FunctionTool> tools;
+    //存放实际工具调用时的元数据
+    private final ConcurrentHashMap<String, ToolCallBack> toolCallBacks = new ConcurrentHashMap<>();
 
     public ToolBuilder(Object... toolObjects) {
         this.toolObjects = Arrays.asList(toolObjects);
         this.tools = initTools();
     }
 
+    public ToolManager buildToolManager() {
+        return new ToolManager(this);
+    }
+
     public List<FunctionTool> getTools() {
         return tools;
+    }
+
+    public ConcurrentHashMap<String, ToolCallBack> getToolCallBacks() {
+        return toolCallBacks;
     }
 
     private List<FunctionTool> initTools() {
@@ -59,7 +73,7 @@ public class ToolBuilder {
         function.setDescription(tool.description());
         //工具参数
         function.setParameters(buildParams(method));
-        ToolInvoker.add(function, method, object);
+        add2ToolCallBack(function, method, object);
         return new FunctionTool(function);
     }
 
@@ -89,5 +103,18 @@ public class ToolBuilder {
             properties.put(paramName, property);
         }
         return new FunctionTool.Function.Parameters(properties, required);
+    }
+
+    public void add2ToolCallBack(FunctionTool.Function function, Method method, Object object) {
+        toolCallBacks.put(function.getName(), new ToolCallBack(method, object,
+                function.getParameters()));
+    }
+
+    @Data
+    @AllArgsConstructor
+    public static class ToolCallBack {
+        private Method method;
+        private Object object;
+        private FunctionTool.Function.Parameters parameters;
     }
 }

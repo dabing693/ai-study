@@ -14,7 +14,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class ToolConfig {
     @Bean
-    public ToolBuilder myTools(
+    public ToolBuilder financeExpertAgentTools(
             DateTimeTool dateTimeTool,
             AccountTool accountTool,
             StockTool stockTool,
@@ -22,5 +22,13 @@ public class ToolConfig {
             SearchTool searchTool
     ) {
         return new ToolBuilder(dateTimeTool, accountTool, stockTool, fundTool, searchTool);
+    }
+
+    @Bean
+    public ToolBuilder investorAgentTools(
+            DateTimeTool dateTimeTool,
+            AccountTool accountTool
+    ) {
+        return new ToolBuilder(dateTimeTool, accountTool);
     }
 }

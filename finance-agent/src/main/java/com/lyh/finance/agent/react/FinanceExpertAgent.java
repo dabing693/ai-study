@@ -5,7 +5,6 @@ import com.lyh.finance.domain.message.SystemMessage;
 import com.lyh.finance.memory.MemoryManager;
 import com.lyh.finance.model.chat.ChatModel;
 import com.lyh.finance.tool.ToolManager;
-import org.springframework.stereotype.Component;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -14,7 +13,6 @@ import java.util.Date;
  * @author lengYinHui
  * @date 2026/2/6
  */
-@Component
 public class FinanceExpertAgent extends ReActAgent {
     public FinanceExpertAgent(ChatModel chatModel,
                               MemoryManager memoryManager,

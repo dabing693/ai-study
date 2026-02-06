@@ -5,7 +5,6 @@ import com.lyh.finance.domain.message.AssistantMessage;
 import com.lyh.finance.domain.message.Message;
 import com.lyh.finance.domain.message.SystemMessage;
 import com.lyh.finance.domain.message.UserMessage;
-import com.lyh.finance.memory.MemoryManager;
 import com.lyh.finance.model.chat.ChatModel;
 import com.lyh.finance.tool.ToolManager;
 
@@ -17,10 +16,9 @@ import java.util.List;
  */
 public abstract class SimpleAgent extends BaseAgent {
     public SimpleAgent(ChatModel chatModel,
-                       MemoryManager memoryManager,
                        ToolManager toolManager
     ) {
-        super(chatModel, memoryManager, toolManager);
+        super(chatModel, null, toolManager);
     }
 
     @Override
