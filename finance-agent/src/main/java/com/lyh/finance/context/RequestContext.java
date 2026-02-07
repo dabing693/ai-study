@@ -1,5 +1,6 @@
 package com.lyh.finance.context;
 
+import com.alibaba.ttl.TransmittableThreadLocal;
 import lombok.Data;
 
 import java.util.Optional;
@@ -14,7 +15,8 @@ public class RequestContext {
     /**
      * 使用 final 保证引用不可变，static 保证全局唯一
      */
-    private static final ThreadLocal<UserContext> USER_CONTEXT = ThreadLocal.withInitial(UserContext::new);
+    private static final TransmittableThreadLocal<UserContext> USER_CONTEXT =
+            new TransmittableThreadLocal<>();
 
     public static void setSession(String sessionId, Boolean newSession) {
         USER_CONTEXT.set(UserContext.of(sessionId, newSession));

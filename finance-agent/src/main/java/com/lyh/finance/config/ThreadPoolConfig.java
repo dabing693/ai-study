@@ -1,5 +1,6 @@
 package com.lyh.finance.config;
 
+import com.alibaba.ttl.threadpool.TtlExecutors;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -14,6 +15,7 @@ import java.util.concurrent.Executors;
 public class ThreadPoolConfig {
     @Bean
     public ExecutorService milvusThreadPool() {
-        return Executors.newVirtualThreadPerTaskExecutor();
+        ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
+        return TtlExecutors.getTtlExecutorService(executor);
     }
 }
