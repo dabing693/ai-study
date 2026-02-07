@@ -86,7 +86,7 @@ public class MilvusMemoryRepository implements IMemoryRepository<LlmMemory, Long
         int limit = query.getLimit() == null ? 10 : query.getLimit();
         // 3) 稀疏向量检索：使用全文文本触发BM25。
         AnnSearchReq sparseRequest = AnnSearchReq.builder()
-                .vectorFieldName("content")
+                .vectorFieldName("content_embeddings")
                 .metricType(IndexParam.MetricType.BM25)
                 .vectors(Collections.singletonList(new EmbeddedText(query.getQuery())))
                 .filter(filter)

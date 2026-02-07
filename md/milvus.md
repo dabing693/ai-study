@@ -39,3 +39,7 @@
 ## 注意点
 - Milvus Query 的 `offset` 分页不保证稳定顺序，可能漏/重复；可改为按 `id` 范围分页。
 - 迁移后数量不一致时，优先检查是否被过滤（如 `type=tool`）。
+## 报错分析
+- `failed to create query plan: field (content) to search is not of vector data type` 表示 BM25 检索需要的字段 `content` 在集合中不是可检索的 TEXT/BM25 字段，或 Milvus 版本不支持 `EmbeddedText`/BM25。
+- 解决：确认 Milvus 2.5.x，并修正 schema/索引；或改为在 `content_embeddings`（SparseFloatVector）上做稀疏向量检索，不要指向 `content` 普通 VarChar。
+- 如果用了旧集合（没有 `content`/BM25），请区分 `llm_memory_vectors` 与 `finance_agent_memory` 并切换到新集合。
