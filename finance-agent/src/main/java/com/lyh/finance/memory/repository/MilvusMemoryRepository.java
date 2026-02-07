@@ -16,7 +16,7 @@ import io.milvus.v2.service.vector.request.HybridSearchReq;
 import io.milvus.v2.service.vector.request.InsertReq;
 import io.milvus.v2.service.vector.request.data.EmbeddedText;
 import io.milvus.v2.service.vector.request.data.FloatVec;
-import io.milvus.v2.service.vector.request.ranker.RRFRanker;
+import io.milvus.v2.service.vector.request.ranker.WeightedRanker;
 import io.milvus.v2.service.vector.response.SearchResp;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -106,7 +106,7 @@ public class MilvusMemoryRepository implements IMemoryRepository<LlmMemory, Long
         HybridSearchReq hybridSearchReq = HybridSearchReq.builder()
                 .collectionName(collectionName)
                 .searchRequests(Arrays.asList(sparseRequest, denseRequest))
-                .ranker(new RRFRanker(60))
+                .ranker(new WeightedRanker(Arrays.asList(0.6f, 0.4f)))
                 .limit(limit)
                 .outFields(Collections.singletonList("id"))
                 .build();
