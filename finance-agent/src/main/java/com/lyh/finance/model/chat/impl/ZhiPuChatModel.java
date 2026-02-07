@@ -6,7 +6,7 @@ import com.lyh.finance.domain.ChatResponse;
 import com.lyh.finance.domain.FunctionTool;
 import com.lyh.finance.domain.message.Message;
 import com.lyh.finance.model.chat.ChatModel;
-import com.lyh.finance.model.chat.property.ModelProperty;
+import com.lyh.finance.model.chat.property.ChatModelProperty;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -23,9 +23,9 @@ import java.util.List;
 public class ZhiPuChatModel extends ChatModel {
 
 
-    public ZhiPuChatModel(ModelProperty modelProperty,
+    public ZhiPuChatModel(ChatModelProperty chatModelProperty,
                           RestTemplate restTemplate) {
-        super(modelProperty, restTemplate);
+        super(chatModelProperty, restTemplate);
     }
 
     @Override
@@ -33,8 +33,8 @@ public class ZhiPuChatModel extends ChatModel {
         //构造对话请求
         ChatRequest request = new ChatRequest();
         request.setMessages(messages);
-        request.setModel(modelProperty.getModelName());
-        request.setEnableThinking(modelProperty.getEnableThinking());
+        request.setModel(chatModelProperty.getModelName());
+        request.setEnableThinking(chatModelProperty.getEnableThinking());
         if (!CollectionUtils.isEmpty(tools)){
             request.setTools(tools);
         }
@@ -44,9 +44,9 @@ public class ZhiPuChatModel extends ChatModel {
 
     private ChatResponse call(ChatRequest request) {
         HttpHeaders requestHeaders = new HttpHeaders();
-        requestHeaders.set("Authorization", "Bearer " + modelProperty.getApiKey());
+        requestHeaders.set("Authorization", "Bearer " + chatModelProperty.getApiKey());
         log.info("请求: {}", JSONArray.toJSONString(request));
         HttpEntity<ChatRequest> httpEntity = new HttpEntity<>(request, requestHeaders);
-        return restTemplate.postForObject(modelProperty.getBaseUrl(), httpEntity, ChatResponse.class);
+        return restTemplate.postForObject(chatModelProperty.getBaseUrl(), httpEntity, ChatResponse.class);
     }
 }

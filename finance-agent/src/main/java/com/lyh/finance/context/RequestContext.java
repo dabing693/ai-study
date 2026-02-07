@@ -16,8 +16,8 @@ public class RequestContext {
      */
     private static final ThreadLocal<UserContext> USER_CONTEXT = ThreadLocal.withInitial(UserContext::new);
 
-    public static void setSession(String sessionId) {
-        USER_CONTEXT.set(UserContext.of(sessionId));
+    public static void setSession(String sessionId, Boolean newSession) {
+        USER_CONTEXT.set(UserContext.of(sessionId, newSession));
     }
 
     public static void setUser(UserContext user) {
@@ -28,6 +28,12 @@ public class RequestContext {
         return Optional.ofNullable(USER_CONTEXT.get())
                 .map(UserContext::getSessionId)
                 .orElse(TEST_PREFIX + System.currentTimeMillis());
+    }
+
+    public static Boolean isNewSession() {
+        return Optional.ofNullable(USER_CONTEXT.get())
+                .map(UserContext::getNewSession)
+                .orElse(true);
     }
 
     public static UserContext getUser() {
@@ -41,10 +47,12 @@ public class RequestContext {
     @Data
     public static class UserContext {
         private String sessionId;
+        private Boolean newSession;
 
-        public static UserContext of(String sessionId) {
+        public static UserContext of(String sessionId, Boolean newSession) {
             final UserContext userContext = new UserContext();
             userContext.setSessionId(sessionId);
+            userContext.setNewSession(newSession);
             return userContext;
         }
     }

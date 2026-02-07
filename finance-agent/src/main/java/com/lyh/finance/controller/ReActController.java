@@ -22,10 +22,12 @@ public class ReActController {
     @GetMapping("/chat")
     public ResponseEntity<ChatResponse> chat(@RequestParam("query") String query,
                                              @RequestHeader(value = "sessionId", required = false) String sessionId) {
+        boolean isNew = false;
         if (sessionId == null) {
             sessionId = UUID.randomUUID().toString().replace("-", "");
+            isNew = true;
         }
-        RequestContext.setSession(sessionId);
+        RequestContext.setSession(sessionId, isNew);
         ChatResponse response = reActAgent.chat(query);
         RequestContext.clear();
         //将sessionId放入响应头

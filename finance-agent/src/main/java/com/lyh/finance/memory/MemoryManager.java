@@ -30,6 +30,9 @@ public class MemoryManager {
     private final ExecutorService milvusThreadPool;
 
     public List<Message> loadMemory(String userMessage) {
+        if (RequestContext.isNewSession()) {
+            return Collections.emptyList();
+        }
         MemoryStrategy strategy = MemoryStrategy.valueOf(memoryProperty.getStrategy());
         MemoryQuery query = new MemoryQuery(RequestContext.getSession(), userMessage,
                 memoryProperty.getMaxMessageNum(), memoryProperty.getMinScore());

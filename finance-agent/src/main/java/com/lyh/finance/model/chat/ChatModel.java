@@ -3,7 +3,7 @@ package com.lyh.finance.model.chat;
 import com.lyh.finance.domain.ChatResponse;
 import com.lyh.finance.domain.FunctionTool;
 import com.lyh.finance.domain.message.Message;
-import com.lyh.finance.model.chat.property.ModelProperty;
+import com.lyh.finance.model.chat.property.ChatModelProperty;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.List;
@@ -13,12 +13,12 @@ import java.util.List;
  * @date 2026/2/5
  */
 public abstract class ChatModel {
-    protected ModelProperty modelProperty;
+    protected ChatModelProperty chatModelProperty;
     protected RestTemplate restTemplate;
 
-    public ChatModel(ModelProperty modelProperty,
+    public ChatModel(ChatModelProperty chatModelProperty,
                      RestTemplate restTemplate) {
-        this.modelProperty = modelProperty;
+        this.chatModelProperty = chatModelProperty;
         this.restTemplate = restTemplate;
     }
 
