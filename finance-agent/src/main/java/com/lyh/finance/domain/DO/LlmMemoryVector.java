@@ -13,5 +13,6 @@ public class LlmMemoryVector {
     private Long id;
     private String type;
     private String conversation_id;
+    private String content;
     private List<Float> content_vector;
 }
