@@ -19,5 +19,5 @@ public class MemoryProperty {
      * @see com.lyh.finance.enums.MemoryStrategy
      */
     private String strategy = MemoryStrategy.sliding_window.name();
-    private Double minScore = 0.85;
+    private Double minScore = 0.90;
 }

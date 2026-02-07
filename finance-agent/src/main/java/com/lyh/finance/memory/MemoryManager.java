@@ -3,6 +3,7 @@ package com.lyh.finance.memory;
 import com.alibaba.fastjson2.JSONObject;
 import com.lyh.finance.context.RequestContext;
 import com.lyh.finance.domain.DO.LlmMemory;
+import com.lyh.finance.domain.DO.LlmMemoryVector;
 import com.lyh.finance.domain.message.*;
 import com.lyh.finance.enums.MemoryStrategy;
 import com.lyh.finance.enums.MessageType;
@@ -42,7 +43,7 @@ public class MemoryManager {
             hisMessages = memory2Message(mysqlMemoryRepository.get(query));
         } else if (Objects.equals(strategy, MemoryStrategy.semantic_call)) {
             //向量数据库取ids，mysql根据id取记忆，在转为message
-            hisMessages = memory2Message(mysqlMemoryRepository.getByIds(milvusMemoryRepository.get(query)));
+            hisMessages = memoryVector2Message(milvusMemoryRepository.get(query));
         }
         //去除系统提示词和用户提示词
         int maxHisMsg = memoryProperty.getMaxMessageNum() - 2;
@@ -82,6 +83,23 @@ public class MemoryManager {
             }
             msg.setHis(true);
             msg.setCreate(it.getTimestamp());
+            msgList.add(msg);
+        }
+        return msgList;
+    }
+
+    private List<Message> memoryVector2Message(List<LlmMemoryVector> vectorList) {
+        if (vectorList == null || vectorList.isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<Message> msgList = new ArrayList<>();
+        for (LlmMemoryVector it : vectorList) {
+            if (it == null || !org.springframework.util.StringUtils.hasText(it.getContent())) {
+                continue;
+            }
+            Message msg = new UserMessage(it.getContent());
+            msg.setHis(true);
+            //todo 值得注意 这里的构造的记忆消息 没第一次创建时间 目前在逻辑上倒没影响
             msgList.add(msg);
         }
         return msgList;

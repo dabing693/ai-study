@@ -37,7 +37,7 @@ import java.util.stream.Collectors;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class MilvusMemoryRepository implements IMemoryRepository<LlmMemory, Long> {
+public class MilvusMemoryRepository implements IMemoryRepository<LlmMemory, LlmMemoryVector> {
     //todo 按agent区分 agent名称从上游传入
     @Value("${milvus.collection-name:finance_agent_memory}")
     private String collectionName;
@@ -45,7 +45,7 @@ public class MilvusMemoryRepository implements IMemoryRepository<LlmMemory, Long
     private final EmbeddingModel embeddingModel;
 
     @Override
-    public List<Long> add(String conversationId, List<LlmMemory> messages) {
+    public List<LlmMemoryVector> add(String conversationId, List<LlmMemory> messages) {
         List<LlmMemoryVector> vectorList = new ArrayList<>();
         for (LlmMemory it : messages) {
             //system tool消息不保存，因为向量搜索的目的是召回相关的历史记忆。
@@ -68,18 +68,25 @@ public class MilvusMemoryRepository implements IMemoryRepository<LlmMemory, Long
         }
         insertBatch(vectorList);
         log.info("成功保存到向量数据库，条数：{}", vectorList.size());
-        return vectorList.stream().map(LlmMemoryVector::getId).collect(Collectors.toList());
+        return vectorList.stream()
+                .map(vector -> {
+                    LlmMemoryVector summary = new LlmMemoryVector();
+                    summary.setId(vector.getId());
+                    summary.setContent(vector.getContent());
+                    return summary;
+                })
+                .collect(Collectors.toList());
     }
 
     @Override
-    public List<Long> get(MemoryQuery query) {
+    public List<LlmMemoryVector> get(MemoryQuery query) {
         if (!StringUtils.hasText(query.getQuery())) {
             return Collections.emptyList();
         }
         return hybridSearch(query);
     }
 
-    private List<Long> hybridSearch(MemoryQuery query) {
+    private List<LlmMemoryVector> hybridSearch(MemoryQuery query) {
         // 1) 构造会话范围过滤条件，避免跨会话召回。
         String filter = buildConversationFilter(query.getConversationId());
         // 2) 确定召回条数上限。
@@ -108,7 +115,7 @@ public class MilvusMemoryRepository implements IMemoryRepository<LlmMemory, Long
                 .searchRequests(Arrays.asList(sparseRequest, denseRequest))
                 .ranker(new WeightedRanker(Arrays.asList(0.6f, 0.4f)))
                 .limit(limit)
-                .outFields(Collections.singletonList("id"))
+                .outFields(Arrays.asList("id", "content"))
                 .build();
         // 7) 执行混合检索。
         SearchResp resp = milvusClientV2.hybridSearch(hybridSearchReq);
@@ -117,23 +124,39 @@ public class MilvusMemoryRepository implements IMemoryRepository<LlmMemory, Long
         if (CollectionUtils.isEmpty(searchResults) || CollectionUtils.isEmpty(searchResults.get(0))) {
             return Collections.emptyList();
         }
+        Double minScore = query.getMinScore();
         return searchResults.get(0).stream()
-                .map(SearchResp.SearchResult::getId)
-                .filter(Objects::nonNull)
-                .map(value -> {
-                    try {
-                        return Long.parseLong(String.valueOf(value));
-                    } catch (Exception e) {
-                        return null;
+                .filter(result -> minScore == null || result.getScore() == null || result.getScore() >= minScore)
+                .map(result -> {
+                    LlmMemoryVector vector = new LlmMemoryVector();
+                    vector.setId(parseId(result.getId()));
+                    Map<String, Object> fields = result.getEntity();
+                    if (fields != null) {
+                        Object content = fields.get("content");
+                        if (content != null) {
+                            vector.setContent(String.valueOf(content));
+                        }
                     }
+                    return vector;
                 })
-                .filter(Objects::nonNull)
+                .filter(vector -> vector.getId() != null && StringUtils.hasText(vector.getContent()))
                 .collect(Collectors.toList());
     }
 
     private String buildConversationFilter(String conversationId) {
         String escapedConversationId = conversationId.replace("'", "\\'");
         return String.format("conversation_id == '%s'", escapedConversationId);
+    }
+
+    private Long parseId(Object value) {
+        if (value == null) {
+            return null;
+        }
+        try {
+            return Long.parseLong(String.valueOf(value));
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     /**
