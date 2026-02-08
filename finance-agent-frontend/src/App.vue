@@ -75,19 +75,18 @@
             >
               <div class="chat__bubble">
                 <div class="chat__role">{{ msg.roleLabel }}</div>
-                <Markdown
-                  class="chat__content"
-                  :source="msg.content"
-                  :breaks="false"
-                />
-              </div>
-            </div>
-            <div v-if="loading" class="chat__item assistant">
-              <div class="chat__bubble">
-                <div class="chat__role">助手</div>
-                <div class="chat__content chat__typing">
+                <div
+                  v-if="msg.role === 'assistant' && msg.streaming && !msg.content"
+                  class="chat__content chat__typing"
+                >
                   <span></span><span></span><span></span>
                 </div>
+                <Markdown
+                  v-else
+                  class="chat__content"
+                  :source="msg.renderedContent || msg.content"
+                  :breaks="false"
+                />
               </div>
             </div>
             <div ref="scrollAnchor"></div>
@@ -132,7 +131,7 @@
 </template>
 
 <script setup>
-import { nextTick, ref, watch } from "vue";
+import { nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
 import Markdown from "vue3-markdown-it";
 
 const input = ref("");
@@ -141,39 +140,79 @@ const loading = ref(false);
 const error = ref("");
 const chatList = ref(null);
 const scrollAnchor = ref(null);
-
-const normalizeAnswer = (raw) => {
-  if (raw == null) {
-    return "暂无可用的回答内容。";
-  }
-  if (typeof raw === "string") {
-    return raw.trim() || "暂无可用的回答内容。";
-  }
-  if (typeof raw === "object") {
-    const reply =
-      raw.reply ||
-      raw.answer ||
-      raw.data ||
-      raw.result ||
-      (raw.message && raw.message.content) ||
-      (raw.choices &&
-        raw.choices[0] &&
-        raw.choices[0].message &&
-        raw.choices[0].message.content);
-    if (typeof reply === "string") {
-      return reply.trim() || "暂无可用的回答内容。";
-    }
-    return JSON.stringify(raw, null, 2);
-  }
-  return String(raw);
-};
+const sessionId = ref("");
+let eventSource = null;
+let pendingScroll = false;
+let flushTimer = null;
+const FLUSH_INTERVAL = 50;
+let autoScrollTimer = null;
+let resizeObserver = null;
+const streamingActive = ref(false);
 
 const scrollToBottom = () => {
+  const anchor = scrollAnchor.value;
+  if (anchor && anchor.scrollIntoView) {
+    anchor.scrollIntoView({ behavior: "auto", block: "end" });
+    return;
+  }
   const list = chatList.value;
   if (!list) return;
   requestAnimationFrame(() => {
-    list.scrollTop = list.scrollHeight;
+    const maxScrollTop = Math.max(0, list.scrollHeight - list.clientHeight);
+    list.scrollTop = maxScrollTop;
   });
+};
+
+const scheduleScroll = () => {
+  if (pendingScroll) return;
+  pendingScroll = true;
+  requestAnimationFrame(() => {
+    scrollToBottom();
+    pendingScroll = false;
+  });
+};
+
+const startAutoScroll = () => {
+  if (autoScrollTimer) return;
+  autoScrollTimer = setInterval(() => {
+    scrollToBottom();
+  }, 50);
+};
+
+const stopAutoScroll = () => {
+  if (!autoScrollTimer) return;
+  clearInterval(autoScrollTimer);
+  autoScrollTimer = null;
+};
+
+onMounted(async () => {
+  await nextTick();
+  const list = chatList.value;
+  if (!list || typeof ResizeObserver === "undefined") return;
+  resizeObserver = new ResizeObserver(() => {
+    if (streamingActive.value) {
+      scrollToBottom();
+    }
+  });
+  resizeObserver.observe(list);
+});
+
+onBeforeUnmount(() => {
+  if (resizeObserver) {
+    resizeObserver.disconnect();
+    resizeObserver = null;
+  }
+});
+
+const scheduleFlush = (message) => {
+  if (!message || !message.streaming) return;
+  if (flushTimer) return;
+  flushTimer = setTimeout(async () => {
+    flushTimer = null;
+    message.renderedContent = message.content;
+    await nextTick();
+    scheduleScroll();
+  }, FLUSH_INTERVAL);
 };
 
 const sendMessage = async () => {
@@ -181,6 +220,10 @@ const sendMessage = async () => {
   if (!text || loading.value) return;
 
   error.value = "";
+  if (eventSource) {
+    eventSource.close();
+    eventSource = null;
+  }
   messages.value.push({
     role: "user",
     roleLabel: "你",
@@ -191,40 +234,127 @@ const sendMessage = async () => {
   await nextTick();
   scrollToBottom();
 
-  try {
-    const url = `/react/chat?query=${encodeURIComponent(text)}`;
-    const res = await fetch(url);
-    const contentType = res.headers.get("content-type") || "";
-    let payload;
-    if (contentType.includes("application/json")) {
-      payload = await res.json();
+  const assistantMessage = reactive({
+    role: "assistant",
+    roleLabel: "助手",
+    content: "",
+    renderedContent: "",
+    streaming: true,
+  });
+  messages.value.push(assistantMessage);
+  await nextTick();
+  scrollToBottom();
+  streamingActive.value = true;
+  startAutoScroll();
+  const insertToolMessage = (toolMsg) => {
+    const idx = messages.value.indexOf(assistantMessage);
+    if (idx >= 0) {
+      messages.value.splice(idx, 0, toolMsg);
     } else {
-      const body = await res.text();
-      try {
-        payload = JSON.parse(body);
-      } catch (parseErr) {
-        payload = body;
-      }
+      messages.value.push(toolMsg);
     }
-    const answer = normalizeAnswer(payload);
-    messages.value.push({
-      role: "assistant",
-      roleLabel: "助手",
-      content: answer,
-    });
-  } catch (err) {
-    const message =
-      err && err.message ? err.message : "请求失败，请确认后端服务是否启动。";
-    if (message.toLowerCase().includes("failed to fetch")) {
-      error.value = "请求失败（可能是跨域或后端未启动）。请检查后端服务。";
-    } else {
-      error.value = `请求失败：${message}`;
-    }
-  } finally {
-    loading.value = false;
+  };
+
+  const url = new URL("/react/chat/stream", window.location.origin);
+  url.searchParams.set("query", text);
+  if (sessionId.value) {
+    url.searchParams.set("sessionId", sessionId.value);
+  }
+
+  eventSource = new EventSource(url.toString());
+  eventSource.onopen = async () => {
     await nextTick();
     scrollToBottom();
-  }
+  };
+  eventSource.addEventListener("session", (event) => {
+    try {
+      const payload = JSON.parse(event.data);
+      if (payload.sessionId) {
+        sessionId.value = payload.sessionId;
+      }
+    } catch (err) {
+      return;
+    }
+  });
+  eventSource.addEventListener("delta", async (event) => {
+    try {
+      const payload = JSON.parse(event.data);
+      if (payload.content) {
+        assistantMessage.content += payload.content;
+        scheduleFlush(assistantMessage);
+      }
+    } catch (err) {
+      return;
+    }
+  });
+  eventSource.addEventListener("tool_call", async (event) => {
+    try {
+      const payload = JSON.parse(event.data);
+      insertToolMessage({
+        role: "tool",
+        roleLabel: "工具调用",
+        content: `调用 ${payload.toolName || "工具"}\n${payload.toolArguments || ""}`,
+      });
+      await nextTick();
+      scrollToBottom();
+    } catch (err) {
+      return;
+    }
+  });
+  eventSource.addEventListener("tool_result", async (event) => {
+    try {
+      const payload = JSON.parse(event.data);
+      insertToolMessage({
+        role: "tool",
+        roleLabel: "工具结果",
+        content: payload.content || "",
+      });
+      await nextTick();
+      scrollToBottom();
+    } catch (err) {
+      return;
+    }
+  });
+  eventSource.addEventListener("done", async () => {
+    assistantMessage.streaming = false;
+    assistantMessage.renderedContent = assistantMessage.content;
+    loading.value = false;
+    streamingActive.value = false;
+    stopAutoScroll();
+    await nextTick();
+    scrollToBottom();
+    eventSource.close();
+    eventSource = null;
+  });
+  eventSource.addEventListener("error", async (event) => {
+    try {
+      const payload = JSON.parse(event.data);
+      error.value = payload.content || "请求失败，请确认后端服务是否启动。";
+    } catch (err) {
+      error.value = "请求失败，请确认后端服务是否启动。";
+    }
+    assistantMessage.streaming = false;
+    assistantMessage.renderedContent = assistantMessage.content;
+    loading.value = false;
+    streamingActive.value = false;
+    stopAutoScroll();
+    await nextTick();
+    scrollToBottom();
+    eventSource.close();
+    eventSource = null;
+  });
+  eventSource.onerror = async () => {
+    error.value = "请求失败，请确认后端服务是否启动。";
+    assistantMessage.streaming = false;
+    assistantMessage.renderedContent = assistantMessage.content;
+    loading.value = false;
+    streamingActive.value = false;
+    stopAutoScroll();
+    await nextTick();
+    scrollToBottom();
+    eventSource.close();
+    eventSource = null;
+  };
 };
 
 watch(

@@ -99,6 +99,8 @@ body {
   flex: 1;
   display: flex;
   flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .topbar {
@@ -186,20 +188,43 @@ body {
 }
 
 .chat {
-  width: min(820px, 100%);
+  width: min(760px, 100%);
   flex: 1;
   display: flex;
   min-height: 0;
+  overflow: hidden;
+  margin-bottom: 20px;
 }
 
 .chat__list {
   width: 100%;
   display: flex;
   flex-direction: column;
+  flex: 1;
   gap: 16px;
-  padding: 10px 8px 80px;
+  padding: 10px 8px 20px;
   overflow-y: auto;
   min-height: 0;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--muted) transparent;
+}
+
+.chat__list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.chat__list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.chat__list::-webkit-scrollbar-thumb {
+  background-color: var(--muted);
+  border-radius: 3px;
+}
+
+.chat__list::-webkit-scrollbar-thumb:hover {
+  background-color: var(--accent);
 }
 
 .chat__item {
@@ -220,10 +245,26 @@ body {
   border: 1px solid var(--line);
 }
 
+.chat__item.assistant .chat__bubble,
+.chat__item.tool .chat__bubble {
+  max-width: 100%;
+  width: 100%;
+}
+
 .chat__item.user .chat__bubble {
   background: #1d6b5a;
   color: #f9faf9;
   border-color: transparent;
+}
+
+.chat__item.tool {
+  justify-content: flex-start;
+}
+
+.chat__item.tool .chat__bubble {
+  background: #f2f1ec;
+  border-color: #e0ded8;
+  color: #2e2e2e;
 }
 
 .chat__role {
@@ -240,6 +281,10 @@ body {
 .chat__content {
   font-size: 15px;
   line-height: 1.45;
+}
+
+.chat__content--stream {
+  white-space: pre-wrap;
 }
 
 .chat__content > * {
@@ -298,10 +343,10 @@ body {
 
 .composer {
   width: min(760px, 100%);
-  margin-top: 20px;
-  animation: fadeUp 0.6s ease both;
   position: sticky;
-  bottom: 24px;
+  bottom: 32px;
+  z-index: 100;
+  background: transparent;
 }
 
 .composer__input {

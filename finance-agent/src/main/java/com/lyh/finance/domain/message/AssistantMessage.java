@@ -21,7 +21,7 @@ public class AssistantMessage extends Message {
     @JsonProperty(value = "tool_calls")
     private List<ToolCall> toolCalls;
 
-    public AssistantMessage() {
+    private AssistantMessage() {
 
     }
 

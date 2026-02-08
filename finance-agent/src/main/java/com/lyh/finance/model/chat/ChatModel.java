@@ -2,17 +2,21 @@ package com.lyh.finance.model.chat;
 
 import com.lyh.finance.domain.ChatResponse;
 import com.lyh.finance.domain.FunctionTool;
+import com.lyh.finance.domain.StreamChatResult;
 import com.lyh.finance.domain.message.Message;
 import com.lyh.finance.model.chat.property.ChatModelProperty;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.List;
+import java.util.function.Consumer;
 
 /**
  * @author lengYinHui
  * @date 2026/2/5
  */
 public abstract class ChatModel {
+    protected static final String PAYLOAD_PREFIX = "data:";
+    protected static final String PAYLOAD_END = "[DONE]";
     protected ChatModelProperty chatModelProperty;
     protected RestTemplate restTemplate;
 
@@ -35,4 +39,8 @@ public abstract class ChatModel {
     }
 
     public abstract ChatResponse call(List<Message> messages, List<FunctionTool> tools);
+
+    public abstract StreamChatResult stream(List<Message> messages,
+                                            List<FunctionTool> tools,
+                                            Consumer<String> onDelta);
 }

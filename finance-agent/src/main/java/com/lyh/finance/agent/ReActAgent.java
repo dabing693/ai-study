@@ -1,6 +1,8 @@
 package com.lyh.finance.agent;
 
 import com.lyh.finance.domain.ChatResponse;
+import com.lyh.finance.domain.StreamChatResult;
+import com.lyh.finance.domain.StreamEvent;
 import com.lyh.finance.domain.message.AssistantMessage;
 import com.lyh.finance.domain.message.Message;
 import com.lyh.finance.domain.message.ToolMessage;
@@ -13,6 +15,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 
 /**
  * @author lengYinHui
@@ -48,6 +51,30 @@ public abstract class ReActAgent extends BaseAgent {
             }
         }
         return planResponse;
+    }
+
+    public void chatStream(String query, Consumer<StreamEvent> eventConsumer) {
+        List<Message> messageList = sense(query);
+        for (int i = 0; i < getMaxLoopNum(); i++) {
+            StreamChatResult streamResult = chatModel.stream(
+                    messageList,
+                    toolManager.getTools(),
+                    delta -> eventConsumer.accept(StreamEvent.delta(delta))
+            );
+            addAndSave(messageList, streamResult.getMessage());
+            if (streamResult.hasToolCalls()) {
+                for (AssistantMessage.ToolCall toolCall : streamResult.getToolCalls()) {
+                    eventConsumer.accept(StreamEvent.toolCall(toolCall));
+                    ToolMessage toolMessage = toolManager.invoke(toolCall);
+                    if (toolMessage != null) {
+                        addAndSave(messageList, toolMessage);
+                        eventConsumer.accept(StreamEvent.toolResult(toolMessage));
+                    }
+                }
+            } else {
+                break;
+            }
+        }
     }
 
     /**
