@@ -141,7 +141,7 @@ const error = ref("");
 const chatList = ref(null);
 const scrollAnchor = ref(null);
 const sessionId = ref("");
-let eventSource = null;
+let sseController = null;
 let pendingScroll = false;
 let flushTimer = null;
 const FLUSH_INTERVAL = 50;
@@ -215,14 +215,90 @@ const scheduleFlush = (message) => {
   }, FLUSH_INTERVAL);
 };
 
+const buildUuid = () => crypto.randomUUID().replace(/-/g, "");
+
+const updateConversationUrl = (conversationId) => {
+  const url = new URL(window.location.href);
+  url.searchParams.set("conversation", conversationId);
+  window.history.replaceState(null, "", url.toString());
+};
+
+const finalizeStreamingState = async (assistantMessage) => {
+  assistantMessage.streaming = false;
+  assistantMessage.renderedContent = assistantMessage.content;
+  loading.value = false;
+  streamingActive.value = false;
+  stopAutoScroll();
+  await nextTick();
+  scrollToBottom();
+};
+
+const parseSseStream = async (response, onEvent) => {
+  const reader = response.body?.getReader();
+  if (!reader) {
+    throw new Error("Empty response body.");
+  }
+  const decoder = new TextDecoder("utf-8");
+  let buffer = "";
+  let currentEvent = "message";
+  let dataLines = [];
+
+  const dispatch = async () => {
+    if (!dataLines.length) return;
+    const data = dataLines.join("\n");
+    await onEvent(currentEvent, data);
+    currentEvent = "message";
+    dataLines = [];
+  };
+
+  while (true) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    let lineBreakIndex = buffer.indexOf("\n");
+    while (lineBreakIndex >= 0) {
+      let line = buffer.slice(0, lineBreakIndex);
+      buffer = buffer.slice(lineBreakIndex + 1);
+      if (line.endsWith("\r")) {
+        line = line.slice(0, -1);
+      }
+      if (!line) {
+        await dispatch();
+        lineBreakIndex = buffer.indexOf("\n");
+        continue;
+      }
+      if (line.startsWith(":")) {
+        lineBreakIndex = buffer.indexOf("\n");
+        continue;
+      }
+      if (line.startsWith("event:")) {
+        currentEvent = line.slice(6).trim() || "message";
+      } else if (line.startsWith("data:")) {
+        dataLines.push(line.slice(5).trimStart());
+      }
+      lineBreakIndex = buffer.indexOf("\n");
+    }
+  }
+
+  if (buffer.trim()) {
+    const line = buffer.replace(/\r$/, "");
+    if (line.startsWith("event:")) {
+      currentEvent = line.slice(6).trim() || "message";
+    } else if (line.startsWith("data:")) {
+      dataLines.push(line.slice(5).trimStart());
+    }
+  }
+  await dispatch();
+};
+
 const sendMessage = async () => {
   const text = input.value.trim();
   if (!text || loading.value) return;
 
   error.value = "";
-  if (eventSource) {
-    eventSource.close();
-    eventSource = null;
+  if (sseController) {
+    sseController.abort();
+    sseController = null;
   }
   messages.value.push({
     role: "user",
@@ -255,106 +331,126 @@ const sendMessage = async () => {
     }
   };
 
+  let isNewSession = false;
+  if (!sessionId.value) {
+    sessionId.value = buildUuid();
+    isNewSession = true;
+    updateConversationUrl(sessionId.value);
+  }
+
   const url = new URL("/react/chat/stream", window.location.origin);
   url.searchParams.set("query", text);
   if (sessionId.value) {
     url.searchParams.set("sessionId", sessionId.value);
   }
 
-  eventSource = new EventSource(url.toString());
-  eventSource.onopen = async () => {
+  sseController = new AbortController();
+  try {
+    const response = await fetch(url.toString(), {
+      headers: {
+        isNew: isNewSession ? "true" : "false",
+      },
+      signal: sseController.signal,
+    });
+
+    if (!response.ok) {
+      throw new Error(`Request failed with ${response.status}`);
+    }
+
     await nextTick();
     scrollToBottom();
-  };
-  eventSource.addEventListener("session", (event) => {
-    try {
-      const payload = JSON.parse(event.data);
-      if (payload.sessionId) {
-        sessionId.value = payload.sessionId;
+
+    await parseSseStream(response, async (eventName, data) => {
+      if (eventName === "session") {
+        try {
+          const payload = JSON.parse(data);
+          if (payload.sessionId && !sessionId.value) {
+            sessionId.value = payload.sessionId;
+          }
+        } catch (err) {
+          return;
+        }
+        return;
       }
-    } catch (err) {
-      return;
-    }
-  });
-  eventSource.addEventListener("delta", async (event) => {
-    try {
-      const payload = JSON.parse(event.data);
-      if (payload.content) {
-        assistantMessage.content += payload.content;
-        scheduleFlush(assistantMessage);
+      if (eventName === "delta") {
+        try {
+          const payload = JSON.parse(data);
+          if (payload.content) {
+            assistantMessage.content += payload.content;
+            scheduleFlush(assistantMessage);
+          }
+        } catch (err) {
+          return;
+        }
+        return;
       }
-    } catch (err) {
+      if (eventName === "tool_call") {
+        try {
+          const payload = JSON.parse(data);
+          insertToolMessage({
+            role: "tool",
+            roleLabel: "Tool Call",
+            content:
+              "Call " +
+              (payload.toolName || "Tool") +
+              "\n" +
+              (payload.toolArguments || ""),
+          });
+          await nextTick();
+          scrollToBottom();
+        } catch (err) {
+          return;
+        }
+        return;
+      }
+      if (eventName === "tool_result") {
+        try {
+          const payload = JSON.parse(data);
+          insertToolMessage({
+            role: "tool",
+            roleLabel: "Tool Result",
+            content: payload.content || "",
+          });
+          await nextTick();
+          scrollToBottom();
+        } catch (err) {
+          return;
+        }
+        return;
+      }
+      if (eventName === "done") {
+        await finalizeStreamingState(assistantMessage);
+        if (sseController) {
+          sseController.abort();
+          sseController = null;
+        }
+        return;
+      }
+      if (eventName === "error") {
+        try {
+          const payload = JSON.parse(data);
+          error.value = payload.content || "Request failed. Please check the backend service.";
+        } catch (err) {
+          error.value = "Request failed. Please check the backend service.";
+        }
+        await finalizeStreamingState(assistantMessage);
+        if (sseController) {
+          sseController.abort();
+          sseController = null;
+        }
+      }
+    });
+  } catch (err) {
+    if (err && err.name === "AbortError") {
       return;
     }
-  });
-  eventSource.addEventListener("tool_call", async (event) => {
-    try {
-      const payload = JSON.parse(event.data);
-      insertToolMessage({
-        role: "tool",
-        roleLabel: "工具调用",
-        content: `调用 ${payload.toolName || "工具"}\n${payload.toolArguments || ""}`,
-      });
-      await nextTick();
-      scrollToBottom();
-    } catch (err) {
-      return;
+    error.value = "Request failed. Please check the backend service.";
+    await finalizeStreamingState(assistantMessage);
+    if (sseController) {
+      sseController.abort();
+      sseController = null;
     }
-  });
-  eventSource.addEventListener("tool_result", async (event) => {
-    try {
-      const payload = JSON.parse(event.data);
-      insertToolMessage({
-        role: "tool",
-        roleLabel: "工具结果",
-        content: payload.content || "",
-      });
-      await nextTick();
-      scrollToBottom();
-    } catch (err) {
-      return;
-    }
-  });
-  eventSource.addEventListener("done", async () => {
-    assistantMessage.streaming = false;
-    assistantMessage.renderedContent = assistantMessage.content;
-    loading.value = false;
-    streamingActive.value = false;
-    stopAutoScroll();
-    await nextTick();
-    scrollToBottom();
-    eventSource.close();
-    eventSource = null;
-  });
-  eventSource.addEventListener("error", async (event) => {
-    try {
-      const payload = JSON.parse(event.data);
-      error.value = payload.content || "请求失败，请确认后端服务是否启动。";
-    } catch (err) {
-      error.value = "请求失败，请确认后端服务是否启动。";
-    }
-    assistantMessage.streaming = false;
-    assistantMessage.renderedContent = assistantMessage.content;
-    loading.value = false;
-    streamingActive.value = false;
-    stopAutoScroll();
-    await nextTick();
-    scrollToBottom();
-    eventSource.close();
-    eventSource = null;
-  });
-  eventSource.onerror = async () => {
-    error.value = "请求失败，请确认后端服务是否启动。";
-    assistantMessage.streaming = false;
-    assistantMessage.renderedContent = assistantMessage.content;
-    loading.value = false;
-    streamingActive.value = false;
-    stopAutoScroll();
-    await nextTick();
-    scrollToBottom();
-    eventSource.close();
-    eventSource = null;
-  };
+  }
 };
 
 watch(

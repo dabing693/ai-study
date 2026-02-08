@@ -26,9 +26,10 @@ public class ReActController {
 
     @GetMapping("/chat")
     public ResponseEntity<ChatResponse> chat(@RequestParam("query") String query,
-                                             @RequestHeader(value = "sessionId", required = false) String sessionId) {
-        boolean isNew = false;
-        if (sessionId == null) {
+                                             @RequestHeader(value = "sessionId", required = false) String sessionId,
+                                             @RequestHeader(value = "isNew", required = false) Boolean isNewHeader) {
+        boolean isNew = Boolean.TRUE.equals(isNewHeader);
+        if (sessionId == null || sessionId.isBlank()) {
             sessionId = UUID.randomUUID().toString().replace("-", "");
             isNew = true;
         }
@@ -43,9 +44,10 @@ public class ReActController {
 
     @GetMapping(value = "/chat/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public ResponseEntity<SseEmitter> chatStream(@RequestParam("query") String query,
-                                                 @RequestParam(value = "sessionId", required = false) String sessionId) {
-        boolean isNew = false;
-        if (sessionId == null) {
+                                                 @RequestParam(value = "sessionId", required = false) String sessionId,
+                                                 @RequestHeader(value = "isNew", required = false) Boolean isNewHeader) {
+        boolean isNew = Boolean.TRUE.equals(isNewHeader);
+        if (sessionId == null || sessionId.isBlank()) {
             sessionId = UUID.randomUUID().toString().replace("-", "");
             isNew = true;
         }
@@ -67,7 +69,6 @@ public class ReActController {
             }
         });
         return ResponseEntity.ok()
-                .header("X-Session-Id", sessionId)
                 .body(emitter);
     }
 
