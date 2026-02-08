@@ -26,38 +26,38 @@ public class ReActController {
 
     @GetMapping("/chat")
     public ResponseEntity<ChatResponse> chat(@RequestParam("query") String query,
-                                             @RequestHeader(value = "sessionId", required = false) String sessionId,
+                                             @RequestHeader(value = "conversationId", required = false) String conversationId,
                                              @RequestHeader(value = "isNew", required = false) Boolean isNewHeader) {
         boolean isNew = Boolean.TRUE.equals(isNewHeader);
-        if (sessionId == null || sessionId.isBlank()) {
-            sessionId = UUID.randomUUID().toString().replace("-", "");
+        if (conversationId == null || conversationId.isBlank()) {
+            conversationId = UUID.randomUUID().toString().replace("-", "");
             isNew = true;
         }
-        RequestContext.setSession(sessionId, isNew);
+        RequestContext.setSession(conversationId, isNew);
         ChatResponse response = reActAgent.chat(query);
         RequestContext.clear();
-        //将sessionId放入响应头
+        //将conversationId放入响应头
         return ResponseEntity.ok()
-                .header("X-Session-Id", sessionId)
+                .header("X-Session-Id", conversationId)
                 .body(response);
     }
 
     @GetMapping(value = "/chat/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public ResponseEntity<SseEmitter> chatStream(@RequestParam("query") String query,
-                                                 @RequestParam(value = "sessionId", required = false) String sessionId,
+                                                 @RequestParam(value = "conversationId", required = false) String conversationId,
                                                  @RequestHeader(value = "isNew", required = false) Boolean isNewHeader) {
         boolean isNew = Boolean.TRUE.equals(isNewHeader);
-        if (sessionId == null || sessionId.isBlank()) {
-            sessionId = UUID.randomUUID().toString().replace("-", "");
+        if (conversationId == null || conversationId.isBlank()) {
+            conversationId = UUID.randomUUID().toString().replace("-", "");
             isNew = true;
         }
-        String finalSessionId = sessionId;
+        String finalConversationId = conversationId;
         boolean finalIsNew = isNew;
         SseEmitter emitter = new SseEmitter(0L);
         CompletableFuture.runAsync(() -> {
             try {
-                RequestContext.setSession(finalSessionId, finalIsNew);
-                sendEvent(emitter, StreamEvent.session(finalSessionId));
+                RequestContext.setSession(finalConversationId, finalIsNew);
+                sendEvent(emitter, StreamEvent.session(finalConversationId));
                 reActAgent.chatStream(query, event -> safeSend(emitter, event));
                 sendEvent(emitter, StreamEvent.done());
                 emitter.complete();

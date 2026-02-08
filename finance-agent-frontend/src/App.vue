@@ -140,7 +140,7 @@ const loading = ref(false);
 const error = ref("");
 const chatList = ref(null);
 const scrollAnchor = ref(null);
-const sessionId = ref("");
+const conversationId = ref("");
 let sseController = null;
 let pendingScroll = false;
 let flushTimer = null;
@@ -332,16 +332,16 @@ const sendMessage = async () => {
   };
 
   let isNewSession = false;
-  if (!sessionId.value) {
-    sessionId.value = buildUuid();
+  if (!conversationId.value) {
+    conversationId.value = buildUuid();
     isNewSession = true;
-    updateConversationUrl(sessionId.value);
+    updateConversationUrl(conversationId.value);
   }
 
   const url = new URL("/react/chat/stream", window.location.origin);
   url.searchParams.set("query", text);
-  if (sessionId.value) {
-    url.searchParams.set("sessionId", sessionId.value);
+  if (conversationId.value) {
+    url.searchParams.set("conversationId", conversationId.value);
   }
 
   sseController = new AbortController();
@@ -364,8 +364,8 @@ const sendMessage = async () => {
       if (eventName === "session") {
         try {
           const payload = JSON.parse(data);
-          if (payload.sessionId && !sessionId.value) {
-            sessionId.value = payload.sessionId;
+          if (payload.conversationId && !conversationId.value) {
+            conversationId.value = payload.conversationId;
           }
         } catch (err) {
           return;

@@ -49,7 +49,7 @@ finance-agent（默认 `server.port=9081`）：
 
 - `GET /react/chat?query=...`
 
-两者都支持可选的 `sessionId` 请求头；未提供时会返回 `X-Session-Id`。
+两者都支持可选的 `conversationId` 请求头；未提供时会返回 `X-Session-Id`。
 
 ## 配置说明
 

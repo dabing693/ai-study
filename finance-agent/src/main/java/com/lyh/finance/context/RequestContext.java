@@ -18,8 +18,8 @@ public class RequestContext {
     private static final TransmittableThreadLocal<UserContext> USER_CONTEXT =
             new TransmittableThreadLocal<>();
 
-    public static void setSession(String sessionId, Boolean newSession) {
-        USER_CONTEXT.set(UserContext.of(sessionId, newSession));
+    public static void setSession(String conversationId, Boolean newConversation) {
+        USER_CONTEXT.set(UserContext.of(conversationId, newConversation));
     }
 
     public static void setUser(UserContext user) {
@@ -28,13 +28,13 @@ public class RequestContext {
 
     public static String getSession() {
         return Optional.ofNullable(USER_CONTEXT.get())
-                .map(UserContext::getSessionId)
+                .map(UserContext::getConversationId)
                 .orElse(TEST_PREFIX + System.currentTimeMillis());
     }
 
-    public static Boolean isNewSession() {
+    public static Boolean isNewConversation() {
         return Optional.ofNullable(USER_CONTEXT.get())
-                .map(UserContext::getNewSession)
+                .map(UserContext::getNewConversation)
                 .orElse(true);
     }
 
@@ -48,13 +48,13 @@ public class RequestContext {
 
     @Data
     public static class UserContext {
-        private String sessionId;
-        private Boolean newSession;
+        private String conversationId;
+        private Boolean newConversation;
 
-        public static UserContext of(String sessionId, Boolean newSession) {
+        public static UserContext of(String conversationId, Boolean newConversation) {
             final UserContext userContext = new UserContext();
-            userContext.setSessionId(sessionId);
-            userContext.setNewSession(newSession);
+            userContext.setConversationId(conversationId);
+            userContext.setNewConversation(newConversation);
             return userContext;
         }
     }

@@ -17,7 +17,7 @@ public class StreamEvent {
     private String toolName;
     private String toolArguments;
     private String toolCallId;
-    private String sessionId;
+    private String conversationId;
 
     public static StreamEvent delta(String content) {
         StreamEvent event = new StreamEvent();
@@ -48,11 +48,11 @@ public class StreamEvent {
         return event;
     }
 
-    public static StreamEvent session(String sessionId) {
+    public static StreamEvent session(String conversationId) {
         StreamEvent event = new StreamEvent();
         event.type = "session";
-        if (StringUtils.hasLength(sessionId)) {
-            event.sessionId = sessionId;
+        if (StringUtils.hasLength(conversationId)) {
+            event.conversationId = conversationId;
         }
         return event;
     }

@@ -31,7 +31,7 @@ public class MemoryManager {
     private final ExecutorService milvusThreadPool;
 
     public List<Message> loadMemory(String userMessage) {
-        if (RequestContext.isNewSession()) {
+        if (RequestContext.isNewConversation()) {
             return Collections.emptyList();
         }
         MemoryStrategy strategy = MemoryStrategy.valueOf(memoryProperty.getStrategy());
