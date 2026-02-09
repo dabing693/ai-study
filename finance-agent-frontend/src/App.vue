@@ -98,6 +98,36 @@
                   :source="msg.renderedContent || msg.content"
                   :breaks="false"
                 />
+                <div class="chat__actions">
+                  <button
+                    class="chat__action-btn"
+                    type="button"
+                    title="复制"
+                    @click="copyMessage(msg.content)"
+                  >
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M16 1H4a2 2 0 0 0-2 2v14h2V3h12V1zm3 4H8a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2zm0 16H8V7h11v14z"/>
+                    </svg>
+                  </button>
+                  <button
+                    class="chat__action-btn"
+                    type="button"
+                    title="点赞"
+                  >
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                    </svg>
+                  </button>
+                  <button
+                    class="chat__action-btn"
+                    type="button"
+                    title="点踩"
+                  >
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M15 3H6c-.83 0-1.54.5-1.84 1.22l-3.02 7.05c-.09.23-.14.47-.14.73v2c0 1.1.9 2 2 2h6.31l-.95 4.57-.03.32c0 .41.17.79.44 1.06L9.83 23l6.59-6.59c.36-.36.58-.86.58-1.41V5c0-1.1-.9-2-2-2zm4 0v12h4V3h-4z"/>
+                    </svg>
+                  </button>
+                </div>
               </div>
             </div>
             <div ref="scrollAnchor"></div>
@@ -285,6 +315,15 @@ const FLUSH_INTERVAL = 50;
 let autoScrollTimer = null;
 let resizeObserver = null;
 const streamingActive = ref(false);
+
+const copyMessage = async (content) => {
+  try {
+    await navigator.clipboard.writeText(content);
+    console.log('内容已复制到剪贴板');
+  } catch (err) {
+    console.error('复制失败:', err);
+  }
+};
 
 const scrollToBottom = () => {
   const anchor = scrollAnchor.value;

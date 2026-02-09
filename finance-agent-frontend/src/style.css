@@ -269,6 +269,11 @@ body {
   border-color: transparent;
 }
 
+.chat__item.assistant .chat__bubble,
+.chat__item.tool .chat__bubble {
+  position: relative;
+}
+
 .chat__item.tool {
   justify-content: flex-start;
 }
@@ -297,6 +302,65 @@ body {
 
 .chat__content--stream {
   white-space: pre-wrap;
+}
+
+.chat__bubble {
+  position: relative;
+  padding-bottom: 36px;
+}
+
+.chat__actions {
+  display: flex;
+  justify-content: flex-start;
+  gap: 8px;
+  position: absolute;
+  bottom: 8px;
+  left: 12px;
+}
+
+.chat__action-btn {
+  width: 28px;
+  height: 28px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.chat__action-btn svg {
+  width: 16px;
+  height: 16px;
+  fill: var(--muted);
+  transition: all 0.2s ease;
+}
+
+.chat__action-btn:hover {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+
+.chat__action-btn:hover svg {
+  fill: var(--accent);
+}
+
+.chat__action-btn:active {
+  transform: scale(0.95);
+}
+
+.chat__item.user .chat__action-btn svg {
+  fill: rgba(255, 255, 255, 0.7);
+}
+
+.chat__item.user .chat__action-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.chat__item.user .chat__action-btn:hover svg {
+  fill: rgba(255, 255, 255, 1);
 }
 
 .chat__content > * {
