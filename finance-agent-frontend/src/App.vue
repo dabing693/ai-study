@@ -2,7 +2,7 @@
   <div class="app">
     <aside class="sidebar">
       <div class="sidebar__logo">◎</div>
-      <button class="sidebar__icon" type="button" title="新对话">
+      <button class="sidebar__icon" type="button" title="新对话" @click="newConversation">
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <path
             d="M5 5h8a2 2 0 0 1 2 2v6H9a2 2 0 0 0-2 2v4H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z"
@@ -19,7 +19,12 @@
           />
         </svg>
       </button>
-      <button class="sidebar__icon" type="button" title="历史">
+      <button
+        class="sidebar__icon"
+        type="button"
+        title="历史"
+        @click="openHistory"
+      >
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <path
             d="M12 4a8 8 0 1 1-7.75 6H2.2a9.8 9.8 0 1 0 2.3-4.4L2 3v6h6l-2.3-2.3A7.8 7.8 0 0 1 12 4z"
@@ -146,19 +151,31 @@
       @close="closeUserMenu"
       @logout="logout"
     />
+
+    <ConversationHistory
+      v-if="showHistory"
+      @close="closeHistory"
+      @load="loadConversation"
+    />
   </div>
 </template>
 
 <script setup>
+/**
+ * @author claude code with kimi
+ * @date 2026/2/6
+ */
 import { nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
 import Markdown from "vue3-markdown-it";
 import AuthModal from "./components/AuthModal.vue";
 import UserMenu from "./components/UserMenu.vue";
+import ConversationHistory from "./components/ConversationHistory.vue";
 import { useAuthStore } from "./stores/auth.js";
 
 const authStore = useAuthStore();
 const showAuthModal = ref(false);
 const showUserMenu = ref(false);
+const showHistory = ref(false);
 
 const openAuthModal = () => {
   showAuthModal.value = true;
@@ -170,6 +187,72 @@ const closeAuthModal = () => {
 
 const handleAuthSuccess = (user) => {
   console.log("登录成功:", user);
+};
+
+const openHistory = () => {
+  if (!authStore.state.isLoggedIn) {
+    showAuthModal.value = true;
+    return;
+  }
+  showHistory.value = true;
+};
+
+const newConversation = () => {
+  conversationId.value = '';
+  messages.value = [];
+  const url = new URL(window.location.href);
+  url.searchParams.delete('conversation');
+  window.history.replaceState(null, '', url.toString());
+};
+
+const closeHistory = () => {
+  showHistory.value = false;
+};
+
+const loadConversation = async (conv) => {
+  conversationId.value = conv.conversationId;
+  messages.value = [];
+
+  // 更新 URL
+  const url = new URL(window.location.href);
+  url.searchParams.set("conversation", conv.conversationId);
+  window.history.replaceState(null, "", url.toString());
+
+  // 加载历史消息
+  if (authStore.state.isLoggedIn) {
+    try {
+      const response = await authStore.fetchWithAuth(
+        `/api/conversation/${conv.conversationId}/messages`
+      );
+      if (response && response.ok) {
+        const historyMessages = await response.json();
+        // 转换消息格式
+        messages.value = historyMessages
+          .filter(msg => msg.type === 'user' || msg.type === 'assistant' || msg.type === 'tool')
+          .map(msg => {
+            let roleLabel = '助手';
+            if (msg.type === 'user') {
+              roleLabel = '你';
+            } else if (msg.type === 'tool') {
+              // 根据内容判断是 Tool Call 还是 Tool Result
+              if (msg.content && msg.content.startsWith('Call ')) {
+                roleLabel = 'Tool Call';
+              } else {
+                roleLabel = 'Tool Result';
+              }
+            }
+            return {
+              role: msg.type === 'tool' ? 'tool' : msg.type,
+              roleLabel: roleLabel,
+              content: msg.content,
+              renderedContent: msg.content
+            };
+          });
+      }
+    } catch (err) {
+      console.error('加载历史消息失败:', err);
+    }
+  }
 };
 
 const handleAvatarClick = () => {
@@ -510,6 +593,58 @@ const sendMessage = async () => {
     }
   }
 };
+
+// 页面加载时检查 URL 中的 conversation 参数
+onMounted(async () => {
+  const urlParams = new URLSearchParams(window.location.search);
+  const convId = urlParams.get('conversation');
+  if (convId) {
+    conversationId.value = convId;
+    // 尝试加载历史对话
+    if (authStore.state.isLoggedIn) {
+      try {
+        const response = await authStore.fetchWithAuth(
+          `/api/conversation/${convId}/messages`
+        );
+        if (response && response.ok) {
+          const historyMessages = await response.json();
+          if (historyMessages && historyMessages.length > 0) {
+            // 有历史数据，正常显示
+            messages.value = historyMessages
+              .filter(msg => msg.type === 'user' || msg.type === 'assistant' || msg.type === 'tool')
+              .map(msg => {
+                let roleLabel = '助手';
+                if (msg.type === 'user') {
+                  roleLabel = '你';
+                } else if (msg.type === 'tool') {
+                  if (msg.content && msg.content.startsWith('Call ')) {
+                    roleLabel = 'Tool Call';
+                  } else {
+                    roleLabel = 'Tool Result';
+                  }
+                }
+                return {
+                  role: msg.type === 'tool' ? 'tool' : msg.type,
+                  roleLabel: roleLabel,
+                  content: msg.content,
+                  renderedContent: msg.content
+                };
+              });
+            return;
+          }
+        }
+        // 查询失败或没有数据，清除 conversation 参数
+        newConversation();
+      } catch (err) {
+        console.error('检查历史对话失败:', err);
+        newConversation();
+      }
+    } else {
+      // 未登录但有 conversation 参数，清除
+      newConversation();
+    }
+  }
+});
 
 watch(
   () => messages.value.length,

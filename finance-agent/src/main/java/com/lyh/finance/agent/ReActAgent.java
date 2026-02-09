@@ -18,8 +18,8 @@ import java.util.List;
 import java.util.function.Consumer;
 
 /**
- * @author lengYinHui
- * @date 2026/2/2
+ * @author claude code with kimi
+ * @date 2026/2/6
  */
 @Slf4j
 @Component
@@ -43,7 +43,7 @@ public abstract class ReActAgent extends BaseAgent {
             addAndSave(messageList, planResponse.getMessage());
             if (planResponse.hasToolCalls()) {
                 //行动，获得tool消息
-                List<Message> toolMessages = action(planResponse.getToolCalls());
+                List<Message> toolMessages = actionWithCall(planResponse.getToolCalls());
                 //添加工具消息
                 addAndSave(messageList, toolMessages);
             } else {
@@ -65,6 +65,12 @@ public abstract class ReActAgent extends BaseAgent {
             if (streamResult.hasToolCalls()) {
                 for (AssistantMessage.ToolCall toolCall : streamResult.getToolCalls()) {
                     eventConsumer.accept(StreamEvent.toolCall(toolCall));
+                    // 保存 tool call 消息
+                    String callContent = "Call " + (toolCall.getFunction() != null ? toolCall.getFunction().getName() : "Tool")
+                            + "\n" + (toolCall.getFunction() != null ? toolCall.getFunction().getArguments() : "");
+                    ToolMessage callMessage = new ToolMessage(callContent, toolCall.getId());
+                    addAndSave(messageList, callMessage);
+                    // 调用工具
                     ToolMessage toolMessage = toolManager.invoke(toolCall);
                     if (toolMessage != null) {
                         addAndSave(messageList, toolMessage);
@@ -119,6 +125,29 @@ public abstract class ReActAgent extends BaseAgent {
             ToolMessage toolMessage = toolManager.invoke(toolCall);
             //添加工具调用的tool消息
             toolMessageList.add(toolMessage);
+        }
+        return toolMessageList;
+    }
+
+    /**
+     * 行动（保存 tool call 和 tool result）
+     *
+     * @param toolCalls
+     * @return
+     */
+    public List<Message> actionWithCall(List<AssistantMessage.ToolCall> toolCalls) {
+        List<Message> toolMessageList = new ArrayList<>();
+        for (AssistantMessage.ToolCall toolCall : toolCalls) {
+            // 保存 tool call
+            String callContent = "Call " + (toolCall.getFunction() != null ? toolCall.getFunction().getName() : "Tool")
+                    + "\n" + (toolCall.getFunction() != null ? toolCall.getFunction().getArguments() : "");
+            ToolMessage callMessage = new ToolMessage(callContent, toolCall.getId());
+            toolMessageList.add(callMessage);
+            // 调用工具并保存结果
+            ToolMessage toolMessage = toolManager.invoke(toolCall);
+            if (toolMessage != null) {
+                toolMessageList.add(toolMessage);
+            }
         }
         return toolMessageList;
     }

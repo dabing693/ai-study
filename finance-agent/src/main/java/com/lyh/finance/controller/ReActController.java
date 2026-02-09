@@ -4,7 +4,11 @@ import com.lyh.base.agent.context.RequestContext;
 import com.lyh.finance.agent.ReActAgent;
 import com.lyh.base.agent.domain.ChatResponse;
 import com.lyh.base.agent.domain.StreamEvent;
+import com.lyh.finance.service.ConversationService;
+import com.lyh.finance.util.JwtUtil;
 import jakarta.annotation.Resource;
+import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -23,6 +27,12 @@ import java.util.UUID;
 public class ReActController {
     @Resource
     private ReActAgent reActAgent;
+
+    @Autowired
+    private ConversationService conversationService;
+
+    @Autowired
+    private JwtUtil jwtUtil;
 
     @GetMapping("/chat")
     public ResponseEntity<ChatResponse> chat(@RequestParam("query") String query,
@@ -45,14 +55,25 @@ public class ReActController {
     @GetMapping(value = "/chat/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public ResponseEntity<SseEmitter> chatStream(@RequestParam("query") String query,
                                                  @RequestParam(value = "conversationId", required = false) String conversationId,
-                                                 @RequestHeader(value = "isNew", required = false) Boolean isNewHeader) {
-        boolean isNew = Boolean.TRUE.equals(isNewHeader);
+                                                 @RequestHeader(value = "isNew", required = false) String isNewHeader,
+                                                 HttpServletRequest request) {
+        boolean isNew = "true".equalsIgnoreCase(isNewHeader);
         if (conversationId == null || conversationId.isBlank()) {
             conversationId = UUID.randomUUID().toString().replace("-", "");
             isNew = true;
         }
+
+        // 获取用户ID，如果已登录则保存对话
+        Long userId = (Long) request.getAttribute("userId");
         String finalConversationId = conversationId;
         boolean finalIsNew = isNew;
+
+        // 如果是新对话且用户已登录，保存会话记录
+        if (finalIsNew && userId != null) {
+            String title = query.length() > 30 ? query.substring(0, 30) + "..." : query;
+            conversationService.createOrUpdateConversation(finalConversationId, userId, title);
+        }
+
         SseEmitter emitter = new SseEmitter(0L);
         CompletableFuture.runAsync(() -> {
             try {
