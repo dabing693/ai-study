@@ -357,7 +357,7 @@ body {
   width: min(760px, 100%);
   position: fixed;
   bottom: 32px;
-  left: calc(var(--sidebar-w) + 50%);
+  left: calc(var(--sidebar-w) + (100% - var(--sidebar-w)) / 2);
   transform: translateX(-50%);
   z-index: 100;
   background: transparent;

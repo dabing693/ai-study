@@ -4,8 +4,8 @@ import com.lyh.base.agent.domain.DO.LlmMemory;
 import com.lyh.base.agent.mapper.LlmMemoryMapper;
 import com.lyh.finance.domain.dto.ConversationMessageDTO;
 import com.lyh.finance.domain.entity.Conversation;
+import com.lyh.finance.interceptor.AuthInterceptor;
 import com.lyh.finance.service.ConversationService;
-import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -31,26 +31,16 @@ public class ConversationController {
     private LlmMemoryMapper llmMemoryMapper;
 
     @GetMapping("/list")
-    public ResponseEntity<?> list(HttpServletRequest request) {
-        Long userId = (Long) request.getAttribute("userId");
-        if (userId == null) {
-            Map<String, String> error = new HashMap<>();
-            error.put("error", "未登录");
-            return ResponseEntity.status(401).body(error);
-        }
+    public ResponseEntity<?> list() {
+        Long userId = AuthInterceptor.getCurrentUserId();
 
         List<Conversation> conversations = conversationService.getUserConversations(userId);
         return ResponseEntity.ok(conversations);
     }
 
     @GetMapping("/{conversationId}/messages")
-    public ResponseEntity<?> getMessages(@PathVariable String conversationId, HttpServletRequest request) {
-        Long userId = (Long) request.getAttribute("userId");
-        if (userId == null) {
-            Map<String, String> error = new HashMap<>();
-            error.put("error", "未登录");
-            return ResponseEntity.status(401).body(error);
-        }
+    public ResponseEntity<?> getMessages(@PathVariable String conversationId) {
+        Long userId = AuthInterceptor.getCurrentUserId();
 
         // 验证该对话是否属于当前用户
         Conversation conversation = conversationService.getConversation(conversationId, userId);
@@ -80,13 +70,8 @@ public class ConversationController {
     }
 
     @DeleteMapping("/{conversationId}")
-    public ResponseEntity<?> delete(@PathVariable String conversationId, HttpServletRequest request) {
-        Long userId = (Long) request.getAttribute("userId");
-        if (userId == null) {
-            Map<String, String> error = new HashMap<>();
-            error.put("error", "未登录");
-            return ResponseEntity.status(401).body(error);
-        }
+    public ResponseEntity<?> delete(@PathVariable String conversationId) {
+        Long userId = AuthInterceptor.getCurrentUserId();
 
         conversationService.deleteConversation(conversationId, userId);
         Map<String, String> result = new HashMap<>();

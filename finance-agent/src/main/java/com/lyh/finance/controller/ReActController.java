@@ -4,10 +4,10 @@ import com.lyh.base.agent.context.RequestContext;
 import com.lyh.finance.agent.ReActAgent;
 import com.lyh.base.agent.domain.ChatResponse;
 import com.lyh.base.agent.domain.StreamEvent;
+import com.lyh.finance.interceptor.AuthInterceptor;
 import com.lyh.finance.service.ConversationService;
 import com.lyh.finance.util.JwtUtil;
 import jakarta.annotation.Resource;
-import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -55,8 +55,7 @@ public class ReActController {
     @GetMapping(value = "/chat/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public ResponseEntity<SseEmitter> chatStream(@RequestParam("query") String query,
                                                  @RequestParam(value = "conversationId", required = false) String conversationId,
-                                                 @RequestHeader(value = "isNew", required = false) String isNewHeader,
-                                                 HttpServletRequest request) {
+                                                 @RequestHeader(value = "isNew", required = false) String isNewHeader) {
         boolean isNew = "true".equalsIgnoreCase(isNewHeader);
         if (conversationId == null || conversationId.isBlank()) {
             conversationId = UUID.randomUUID().toString().replace("-", "");
@@ -64,7 +63,7 @@ public class ReActController {
         }
 
         // 获取用户ID，如果已登录则保存对话
-        Long userId = (Long) request.getAttribute("userId");
+        Long userId = AuthInterceptor.getCurrentUserId();
         String finalConversationId = conversationId;
         boolean finalIsNew = isNew;
 

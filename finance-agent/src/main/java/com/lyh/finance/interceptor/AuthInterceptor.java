@@ -17,6 +17,15 @@ public class AuthInterceptor implements HandlerInterceptor {
     @Autowired
     private JwtUtil jwtUtil;
 
+    private static final ThreadLocal<Long> CURRENT_USER = new ThreadLocal<>();
+
+    /**
+     * 获取当前登录用户ID
+     */
+    public static Long getCurrentUserId() {
+        return CURRENT_USER.get();
+    }
+
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
         // 允许跨域预检请求通过
@@ -46,6 +55,15 @@ public class AuthInterceptor implements HandlerInterceptor {
         request.setAttribute("userId", userId);
         request.setAttribute("email", email);
 
+        // 存入ThreadLocal，方便Controller直接获取
+        CURRENT_USER.set(userId);
+
         return true;
+    }
+
+    @Override
+    public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) {
+        // 清理ThreadLocal，防止内存泄漏和线程复用问题
+        CURRENT_USER.remove();
     }
 }
