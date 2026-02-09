@@ -1,6 +1,6 @@
 package com.lyh.finance.config;
 
-import com.lyh.finance.tool.ToolBuilder;
+import com.lyh.base.agent.tool.ToolBuilder;
 import com.lyh.finance.tools.*;
 import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Component;

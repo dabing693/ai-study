@@ -1,15 +1,15 @@
 package com.lyh.finance.config;
 
-import com.lyh.finance.model.chat.ChatModel;
-import com.lyh.finance.model.chat.property.ChatModelProperty;
-import com.lyh.finance.model.chat.property.ZhiPuChatModelProperty;
-import com.lyh.finance.model.chat.impl.ZhiPuChatModel;
-import com.lyh.finance.model.embedding.EmbeddingModel;
-import com.lyh.finance.model.embedding.impl.GeminiEmbeddingModel;
-import com.lyh.finance.model.embedding.impl.OllamaEmbeddingModel;
-import com.lyh.finance.model.embedding.property.EmbeddingModelProperty;
-import com.lyh.finance.model.embedding.property.GeminiEmbeddingModelProperty;
-import com.lyh.finance.model.embedding.property.OllamaEmbeddingModelProperty;
+import com.lyh.base.agent.model.chat.ChatModel;
+import com.lyh.base.agent.model.chat.property.ChatModelProperty;
+import com.lyh.base.agent.model.chat.property.ZhiPuChatModelProperty;
+import com.lyh.base.agent.model.chat.impl.ZhiPuChatModel;
+import com.lyh.base.agent.model.embedding.EmbeddingModel;
+import com.lyh.base.agent.model.embedding.impl.GeminiEmbeddingModel;
+import com.lyh.base.agent.model.embedding.impl.OllamaEmbeddingModel;
+import com.lyh.base.agent.model.embedding.property.EmbeddingModelProperty;
+import com.lyh.base.agent.model.embedding.property.GeminiEmbeddingModelProperty;
+import com.lyh.base.agent.model.embedding.property.OllamaEmbeddingModelProperty;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;

@@ -1,11 +1,11 @@
 package com.lyh.finance.memory;
 
-import com.lyh.finance.domain.DO.LlmMemory;
-import com.lyh.finance.domain.DO.LlmMemoryVector;
-import com.lyh.finance.enums.MessageType;
+import com.lyh.base.agent.domain.DO.LlmMemory;
+import com.lyh.base.agent.domain.DO.LlmMemoryVector;
+import com.lyh.base.agent.enums.MessageType;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
-import com.lyh.finance.mapper.LlmMemoryMapper;
+import com.lyh.base.agent.mapper.LlmMemoryMapper;
 import io.milvus.v2.client.MilvusClientV2;
 import io.milvus.v2.service.vector.request.InsertReq;
 import io.milvus.v2.service.vector.request.QueryReq;

@@ -1,9 +1,9 @@
 package com.lyh.finance.tools;
 
 import com.lyh.common.util.MarkdownUtil;
-import com.lyh.finance.annotation.Tool;
-import com.lyh.finance.annotation.ToolParam;
-import com.lyh.finance.domain.dto.SearchCodeDTO;
+import com.lyh.base.agent.annotation.Tool;
+import com.lyh.base.agent.annotation.ToolParam;
+import com.lyh.base.agent.domain.dto.SearchCodeDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;

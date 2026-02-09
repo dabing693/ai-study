@@ -1,6 +1,6 @@
 package com.lyh.finance.tools;
 
-import com.lyh.finance.annotation.Tool;
+import com.lyh.base.agent.annotation.Tool;
 import org.springframework.stereotype.Component;
 
 import java.text.SimpleDateFormat;

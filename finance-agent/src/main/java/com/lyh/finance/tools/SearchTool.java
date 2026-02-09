@@ -2,10 +2,10 @@ package com.lyh.finance.tools;
 
 
 import com.lyh.common.util.MarkdownUtil;
-import com.lyh.finance.annotation.Tool;
-import com.lyh.finance.annotation.ToolParam;
-import com.lyh.finance.domain.dto.TavilySearchDTO;
-import com.lyh.finance.domain.query.TavilySearchQuery;
+import com.lyh.base.agent.annotation.Tool;
+import com.lyh.base.agent.annotation.ToolParam;
+import com.lyh.base.agent.domain.dto.TavilySearchDTO;
+import com.lyh.base.agent.domain.query.TavilySearchQuery;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;

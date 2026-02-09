@@ -2,9 +2,8 @@ package com.lyh.finance.memory;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
-import com.lyh.finance.domain.DO.LlmMemoryVector;
-import com.lyh.finance.model.embedding.EmbeddingModel;
-import com.lyh.finance.model.embedding.impl.OllamaEmbeddingModel;
+import com.lyh.base.agent.domain.DO.LlmMemoryVector;
+import com.lyh.base.agent.model.embedding.EmbeddingModel;
 import io.milvus.v2.client.MilvusClientV2;
 import io.milvus.v2.service.vector.request.UpsertReq;
 import io.milvus.v2.service.vector.request.QueryReq;
@@ -18,7 +17,6 @@ import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 

@@ -2,8 +2,8 @@ package com.lyh.finance.tools;
 
 
 import com.lyh.common.util.MarkdownUtil;
-import com.lyh.finance.annotation.Tool;
-import com.lyh.finance.annotation.ToolParam;
+import com.lyh.base.agent.annotation.Tool;
+import com.lyh.base.agent.annotation.ToolParam;
 import org.springframework.stereotype.Service;
 
 /**

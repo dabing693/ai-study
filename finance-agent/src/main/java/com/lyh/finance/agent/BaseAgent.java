@@ -1,13 +1,13 @@
 package com.lyh.finance.agent;
 
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
-import com.lyh.finance.domain.ChatResponse;
-import com.lyh.finance.domain.message.AssistantMessage;
-import com.lyh.finance.domain.message.Message;
-import com.lyh.finance.domain.message.SystemMessage;
-import com.lyh.finance.memory.MemoryManager;
-import com.lyh.finance.model.chat.ChatModel;
-import com.lyh.finance.tool.ToolManager;
+import com.lyh.base.agent.domain.ChatResponse;
+import com.lyh.base.agent.domain.message.AssistantMessage;
+import com.lyh.base.agent.domain.message.Message;
+import com.lyh.base.agent.domain.message.SystemMessage;
+import com.lyh.base.agent.memory.MemoryManager;
+import com.lyh.base.agent.model.chat.ChatModel;
+import com.lyh.base.agent.tool.ToolManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.ClassPathResource;

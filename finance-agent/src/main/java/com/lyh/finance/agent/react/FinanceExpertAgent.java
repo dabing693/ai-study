@@ -1,10 +1,10 @@
 package com.lyh.finance.agent.react;
 
 import com.lyh.finance.agent.ReActAgent;
-import com.lyh.finance.domain.message.SystemMessage;
-import com.lyh.finance.memory.MemoryManager;
-import com.lyh.finance.model.chat.ChatModel;
-import com.lyh.finance.tool.ToolManager;
+import com.lyh.base.agent.domain.message.SystemMessage;
+import com.lyh.base.agent.memory.MemoryManager;
+import com.lyh.base.agent.model.chat.ChatModel;
+import com.lyh.base.agent.tool.ToolManager;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;

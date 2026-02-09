@@ -1,15 +1,15 @@
 package com.lyh.finance.agent;
 
-import com.lyh.finance.domain.ChatResponse;
-import com.lyh.finance.domain.StreamChatResult;
-import com.lyh.finance.domain.StreamEvent;
-import com.lyh.finance.domain.message.AssistantMessage;
-import com.lyh.finance.domain.message.Message;
-import com.lyh.finance.domain.message.ToolMessage;
-import com.lyh.finance.domain.message.UserMessage;
-import com.lyh.finance.memory.MemoryManager;
-import com.lyh.finance.model.chat.ChatModel;
-import com.lyh.finance.tool.ToolManager;
+import com.lyh.base.agent.domain.ChatResponse;
+import com.lyh.base.agent.domain.StreamChatResult;
+import com.lyh.base.agent.domain.StreamEvent;
+import com.lyh.base.agent.domain.message.AssistantMessage;
+import com.lyh.base.agent.domain.message.Message;
+import com.lyh.base.agent.domain.message.ToolMessage;
+import com.lyh.base.agent.domain.message.UserMessage;
+import com.lyh.base.agent.memory.MemoryManager;
+import com.lyh.base.agent.model.chat.ChatModel;
+import com.lyh.base.agent.tool.ToolManager;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 

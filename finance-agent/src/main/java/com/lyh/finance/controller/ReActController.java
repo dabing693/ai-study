@@ -1,9 +1,9 @@
 package com.lyh.finance.controller;
 
-import com.lyh.finance.context.RequestContext;
+import com.lyh.base.agent.context.RequestContext;
 import com.lyh.finance.agent.ReActAgent;
-import com.lyh.finance.domain.ChatResponse;
-import com.lyh.finance.domain.StreamEvent;
+import com.lyh.base.agent.domain.ChatResponse;
+import com.lyh.base.agent.domain.StreamEvent;
 import jakarta.annotation.Resource;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
