@@ -164,9 +164,10 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 40px 20px 32px;
+  padding: 40px 20px 0;
   position: relative;
   min-height: 0;
+  overflow: hidden;
 }
 
 .welcome {
@@ -191,39 +192,37 @@ body {
   width: min(760px, 100%);
   flex: 1;
   display: flex;
+  flex-direction: column;
   min-height: 0;
-  overflow: hidden;
-  margin-bottom: 20px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: var(--muted) transparent;
 }
 
 .chat__list {
   width: 100%;
   display: flex;
   flex-direction: column;
-  flex: 1;
   gap: 16px;
-  padding: 10px 8px 20px;
-  overflow-y: auto;
-  min-height: 0;
-  overscroll-behavior: contain;
-  scrollbar-width: thin;
-  scrollbar-color: var(--muted) transparent;
+  padding: 10px 8px 120px;
+  min-height: min-content;
 }
 
-.chat__list::-webkit-scrollbar {
+.chat::-webkit-scrollbar {
   width: 6px;
 }
 
-.chat__list::-webkit-scrollbar-track {
+.chat::-webkit-scrollbar-track {
   background: transparent;
 }
 
-.chat__list::-webkit-scrollbar-thumb {
+.chat::-webkit-scrollbar-thumb {
   background-color: var(--muted);
   border-radius: 3px;
 }
 
-.chat__list::-webkit-scrollbar-thumb:hover {
+.chat::-webkit-scrollbar-thumb:hover {
   background-color: var(--accent);
 }
 
@@ -343,10 +342,13 @@ body {
 
 .composer {
   width: min(760px, 100%);
-  position: sticky;
+  position: fixed;
   bottom: 32px;
+  left: calc(var(--sidebar-w) + 50%);
+  transform: translateX(-50%);
   z-index: 100;
   background: transparent;
+  padding: 0 20px;
 }
 
 .composer__input {
@@ -499,6 +501,11 @@ body {
   }
 
   .topbar {
+    padding: 0 16px;
+  }
+
+  .composer {
+    left: 50%;
     padding: 0 16px;
   }
 
