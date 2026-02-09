@@ -48,6 +48,10 @@ body {
   align-items: center;
   padding: 20px 0;
   gap: 16px;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  align-self: flex-start;
 }
 
 .sidebar__logo {
