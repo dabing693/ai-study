@@ -29,7 +29,13 @@
         </svg>
       </button>
       <div class="sidebar__spacer"></div>
-      <div class="sidebar__avatar">Y</div>
+      <button
+        class="sidebar__avatar"
+        :title="authStore.state.isLoggedIn ? authStore.state.user?.nickname || authStore.state.user?.email : '点击登录'"
+        @click="handleAvatarClick"
+      >
+        {{ authStore.state.isLoggedIn ? (authStore.state.user?.nickname?.[0] || authStore.state.user?.email?.[0] || 'U').toUpperCase() : 'L' }}
+      </button>
     </aside>
 
     <main class="main">
@@ -127,12 +133,60 @@
         </div>
       </section>
     </main>
+
+    <AuthModal
+      v-if="showAuthModal"
+      @close="closeAuthModal"
+      @success="handleAuthSuccess"
+    />
+
+    <UserMenu
+      v-if="showUserMenu"
+      :user="authStore.state.user"
+      @close="closeUserMenu"
+      @logout="logout"
+    />
   </div>
 </template>
 
 <script setup>
 import { nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
 import Markdown from "vue3-markdown-it";
+import AuthModal from "./components/AuthModal.vue";
+import UserMenu from "./components/UserMenu.vue";
+import { useAuthStore } from "./stores/auth.js";
+
+const authStore = useAuthStore();
+const showAuthModal = ref(false);
+const showUserMenu = ref(false);
+
+const openAuthModal = () => {
+  showAuthModal.value = true;
+};
+
+const closeAuthModal = () => {
+  showAuthModal.value = false;
+};
+
+const handleAuthSuccess = (user) => {
+  console.log("登录成功:", user);
+};
+
+const handleAvatarClick = () => {
+  if (authStore.state.isLoggedIn) {
+    showUserMenu.value = true;
+  } else {
+    showAuthModal.value = true;
+  }
+};
+
+const closeUserMenu = () => {
+  showUserMenu.value = false;
+};
+
+const logout = () => {
+  authStore.logout();
+};
 
 const input = ref("");
 const messages = ref([]);
@@ -346,10 +400,14 @@ const sendMessage = async () => {
 
   sseController = new AbortController();
   try {
+    const headers = {
+      isNew: isNewSession ? "true" : "false",
+    };
+    if (authStore.state.isLoggedIn && authStore.state.token) {
+      headers["Authorization"] = `Bearer ${authStore.state.token}`;
+    }
     const response = await fetch(url.toString(), {
-      headers: {
-        isNew: isNewSession ? "true" : "false",
-      },
+      headers,
       signal: sseController.signal,
     });
 
