@@ -10,7 +10,6 @@ import com.lyh.base.agent.mapper.LlmMemoryMapper;
 import com.lyh.base.agent.memory.MemoryQuery;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
 
 import java.util.*;
@@ -20,7 +19,6 @@ import java.util.*;
  * @date 2026/2/3
  */
 @Slf4j
-@Component
 @RequiredArgsConstructor
 public class MysqlMemoryRepository implements IMemoryRepository<Message, LlmMemory> {
     private final LlmMemoryMapper llmMemoryMapper;

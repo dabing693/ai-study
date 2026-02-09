@@ -1,4 +1,4 @@
-package com.lyh.finance.config;
+package com.lyh.base.agent.config;
 
 import com.lyh.base.agent.model.chat.ChatModel;
 import com.lyh.base.agent.model.chat.property.ChatModelProperty;

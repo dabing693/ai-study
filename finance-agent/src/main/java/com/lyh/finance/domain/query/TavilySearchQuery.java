@@ -1,4 +1,4 @@
-package com.lyh.base.agent.domain.query;
+package com.lyh.finance.domain.query;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

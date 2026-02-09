@@ -1,4 +1,4 @@
-package com.lyh.finance.config;
+package com.lyh.base.agent.config;
 
 import com.alibaba.ttl.threadpool.TtlExecutors;
 import org.springframework.context.annotation.Bean;

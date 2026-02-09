@@ -1,4 +1,4 @@
-package com.lyh.finance.config;
+package com.lyh.base.agent.config;
 
 import io.milvus.client.MilvusServiceClient;
 import io.milvus.param.ConnectParam;

@@ -1,4 +1,4 @@
-package com.lyh.base.agent.domain.dto;
+package com.lyh.finance.domain.dto;
 
 import lombok.Data;
 

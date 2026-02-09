@@ -19,7 +19,6 @@ import io.milvus.v2.service.vector.response.SearchResp;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
@@ -31,7 +30,6 @@ import java.util.stream.Collectors;
  * @date 2026/2/6
  */
 @Slf4j
-@Component
 @RequiredArgsConstructor
 public class MilvusMemoryRepository implements IMemoryRepository<LlmMemory, LlmMemoryVector> {
     //todo 按agent区分 agent名称从上游传入

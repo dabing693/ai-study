@@ -1,4 +1,4 @@
-package com.lyh.finance.config;
+package com.lyh.base.agent.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

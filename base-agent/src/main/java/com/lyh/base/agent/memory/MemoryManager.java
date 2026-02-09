@@ -12,7 +12,6 @@ import com.lyh.base.agent.memory.repository.MilvusMemoryRepository;
 import com.lyh.base.agent.memory.repository.MysqlMemoryRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Component;
 
 import java.util.*;
 import java.util.concurrent.ExecutorService;
@@ -24,7 +23,6 @@ import java.util.stream.Collectors;
  */
 @Slf4j
 @RequiredArgsConstructor
-@Component
 public class MemoryManager {
     private final MemoryProperty memoryProperty;
     private final MysqlMemoryRepository mysqlMemoryRepository;
