@@ -326,16 +326,28 @@ const copyMessage = async (content) => {
 };
 
 const scrollToBottom = () => {
-  const anchor = scrollAnchor.value;
-  if (anchor && anchor.scrollIntoView) {
-    anchor.scrollIntoView({ behavior: "auto", block: "end" });
-    return;
-  }
   const list = chatList.value;
   if (!list) return;
+
+  // 获取 composer 元素，用于计算滚动偏移
+  const composerEl = document.querySelector('.composer');
+  const composerHeight = composerEl ? composerEl.offsetHeight + 32 : 120; // 32px 是底部间距，默认 120px
+
   requestAnimationFrame(() => {
-    const maxScrollTop = Math.max(0, list.scrollHeight - list.clientHeight);
-    list.scrollTop = maxScrollTop;
+    // 获取最后一个消息元素
+    const lastMessage = list.querySelector('.chat__item:last-of-type');
+    if (lastMessage) {
+      // 计算最后一个消息元素相对于 list 的偏移
+      const messageBottom = lastMessage.offsetTop + lastMessage.offsetHeight;
+      // 需要滚动的位置：消息底部 + composer 高度 - list 可视高度
+      let targetScrollTop = messageBottom + composerHeight - list.clientHeight;
+      targetScrollTop = Math.max(0, targetScrollTop);
+      list.scrollTop = targetScrollTop;
+    } else {
+      // 兜底：直接滚到底部加上足够的间距
+      const maxScrollTop = Math.max(0, list.scrollHeight - list.clientHeight);
+      list.scrollTop = maxScrollTop;
+    }
   });
 };
 
@@ -365,7 +377,7 @@ onMounted(async () => {
   await nextTick();
   const list = chatList.value;
   if (!list || typeof ResizeObserver === "undefined") return;
-  resizeObserver = new ResizeObserver(() => {
+  resizeObserver = new ResizeObserver((entries) => {
     if (streamingActive.value) {
       scrollToBottom();
     }
