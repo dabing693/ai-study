@@ -256,78 +256,7 @@ const loadConversation = async (conv) => {
       );
       if (response && response.ok) {
         const historyMessages = await response.json();
-        // 转换消息格式
-        const parsedMessages = [];
-        let lastAssistantMsg = null;
-
-        historyMessages
-          .filter(msg => msg.type === 'user' || msg.type === 'assistant' || msg.type === 'tool')
-          .forEach(msg => {
-            if (msg.type === 'user') {
-              parsedMessages.push({
-                role: 'user',
-                roleLabel: '你',
-                content: msg.content,
-                renderedContent: msg.content,
-                reasoningContent: '',
-                toolCalls: []
-              });
-              lastAssistantMsg = null;
-            } else if (msg.type === 'assistant') {
-              const assistantMsg = {
-                role: 'assistant',
-                roleLabel: '助手',
-                content: msg.content,
-                renderedContent: msg.content,
-                reasoningContent: '',
-                toolCalls: []
-              };
-              try {
-                const jsonData = JSON.parse(msg.content);
-                if (jsonData.content) {
-                  assistantMsg.content = jsonData.content;
-                }
-                if (jsonData.reasoning_content) {
-                  assistantMsg.reasoningContent = jsonData.reasoning_content;
-                }
-                if (jsonData.tool_calls) {
-                  assistantMsg.toolCalls = JSON.parse(jsonData.tool_calls);
-                }
-              } catch (e) {
-                assistantMsg.content = msg.content;
-              }
-              assistantMsg.renderedContent = assistantMsg.content;
-              parsedMessages.push(assistantMsg);
-              lastAssistantMsg = assistantMsg;
-            } else if (msg.type === 'tool') {
-              // Tool Call 消息合并到上一条助手消息的 toolCalls 中
-              if (msg.content && msg.content.startsWith('Call ') && lastAssistantMsg) {
-                //todo
-                // 解析 Tool Call 信息
-                const lines = msg.content.split('\n');
-                const toolName = lines[0].replace('Call ', '').trim();
-                const toolArgs = lines.slice(1).join('\n');
-                lastAssistantMsg.toolCalls.push({
-                  function: {
-                    name: toolName || 'Tool',
-                    arguments: toolArgs || '{}'
-                  }
-                });
-              } else {
-                // Tool Result 作为独立消息
-                parsedMessages.push({
-                  role: 'tool',
-                  roleLabel: 'Tool Result',
-                  content: msg.content,
-                  renderedContent: msg.content,
-                  reasoningContent: '',
-                  toolCalls: []
-                });
-              }
-            }
-          });
-
-        messages.value = parsedMessages;
+        messages.value = parseHistoryMessages(historyMessages);
       }
     } catch (err) {
       console.error('加载历史消息失败:', err);
@@ -406,6 +335,66 @@ const getAssistantDisplayContent = (msg) => {
   return fullContent;
 };
 
+/**
+ * 解析历史消息数据，统一处理用户、助手和工具消息
+ * @param {Array} historyMessages - 从后端获取的原始消息数组
+ * @returns {Array} 解析后的消息数组
+ */
+const parseHistoryMessages = (historyMessages) => {
+  const parsedMessages = [];
+  let lastAssistantMsg = null;
+
+  historyMessages
+    .filter(msg => msg.type === 'user' || msg.type === 'assistant' || msg.type === 'tool')
+    .forEach(msg => {
+      if (msg.type === 'user') {
+        parsedMessages.push({
+          role: 'user',
+          roleLabel: '你',
+          content: msg.content,
+          reasoningContent: '',
+          toolCalls: []
+        });
+        lastAssistantMsg = null;
+      } else if (msg.type === 'assistant') {
+        const assistantMsg = {
+          role: 'assistant',
+          roleLabel: '助手',
+          content: msg.content,
+          reasoningContent: '',
+          toolCalls: []
+        };
+        try {
+          const jsonData = JSON.parse(msg.content);
+          if (jsonData.content) {
+            assistantMsg.content = jsonData.content;
+          }
+          if (jsonData.reasoning_content) {
+            assistantMsg.reasoningContent = jsonData.reasoning_content;
+          }
+          if (jsonData.tool_calls) {
+            assistantMsg.toolCalls = JSON.parse(jsonData.tool_calls);
+          }
+        } catch (e) {
+          assistantMsg.content = msg.content;
+        }
+        parsedMessages.push(assistantMsg);
+        lastAssistantMsg = assistantMsg;
+      } else if (msg.type === 'tool') {
+        // Tool Result 作为独立消息
+        parsedMessages.push({
+          role: 'tool',
+          roleLabel: 'Tool Result',
+          content: msg.content,
+          reasoningContent: '',
+          toolCalls: []
+        });
+      }
+    });
+
+  return parsedMessages;
+};
+
 const scrollToBottom = () => {
   const list = chatList.value;
   if (!list) return;
@@ -478,7 +467,6 @@ const scheduleFlush = (message) => {
   if (flushTimer) return;
   flushTimer = setTimeout(async () => {
     flushTimer = null;
-    message.renderedContent = message.content;
     await nextTick();
     scheduleScroll();
   }, FLUSH_INTERVAL);
@@ -494,7 +482,6 @@ const updateConversationUrl = (conversationId) => {
 
 const finalizeStreamingState = async (assistantMessage) => {
   assistantMessage.streaming = false;
-  assistantMessage.renderedContent = assistantMessage.content;
   loading.value = false;
   streamingActive.value = false;
   stopAutoScroll();
@@ -583,7 +570,6 @@ const sendMessage = async () => {
     role: "assistant",
     roleLabel: "助手",
     content: "",
-    renderedContent: "",
     reasoningContent: "",
     toolCalls: [],
     streaming: true,
@@ -602,14 +588,12 @@ const sendMessage = async () => {
     // 先结束之前的消息
     if (currentAssistantMessage) {
       currentAssistantMessage.streaming = false;
-      currentAssistantMessage.renderedContent = currentAssistantMessage.content;
     }
     // 创建新消息
     const newMsg = reactive({
       role: "assistant",
       roleLabel: "助手",
       content: "",
-      renderedContent: "",
       reasoningContent: "",
       toolCalls: [],
       streaming: true,
@@ -784,79 +768,7 @@ onMounted(async () => {
           const historyMessages = await response.json();
           if (historyMessages && historyMessages.length > 0) {
             // 有历史数据，正常显示
-            const parsedMessages = [];
-            let lastAssistantMsg = null;
-
-            historyMessages
-              .filter(msg => msg.type === 'user' || msg.type === 'assistant' || msg.type === 'tool')
-              .forEach(msg => {
-                if (msg.type === 'user') {
-                  parsedMessages.push({
-                    role: 'user',
-                    roleLabel: '你',
-                    content: msg.content,
-                    renderedContent: msg.content,
-                    reasoningContent: '',
-                    toolCalls: []
-                  });
-                  lastAssistantMsg = null;
-                } else if (msg.type === 'assistant') {
-                  const assistantMsg = {
-                    role: 'assistant',
-                    roleLabel: '助手',
-                    content: msg.content,
-                    renderedContent: msg.content,
-                    reasoningContent: '',
-                    toolCalls: []
-                  };
-                  try {
-                    const jsonData = JSON.parse(msg.content);
-                    if (jsonData.content) {
-                      assistantMsg.content = jsonData.content;
-                    }
-                    if (jsonData.reasoning_content) {
-                      assistantMsg.reasoningContent = jsonData.reasoning_content;
-                    }
-                    if (jsonData.tool_calls) {
-                      assistantMsg.toolCalls = JSON.parse(jsonData.tool_calls);
-                    }
-                  } catch (e) {
-                    assistantMsg.content = msg.content;
-                  }
-                  assistantMsg.renderedContent = assistantMsg.content;
-                  console.log("助手消息");
-                  console.log(assistantMsg);
-                  parsedMessages.push(assistantMsg);
-                  lastAssistantMsg = assistantMsg;
-                } else if (msg.type === 'tool') {
-                  // Tool Call 消息合并到上一条助手消息的 toolCalls 中
-                  if (msg.content && msg.content.startsWith('Call ') && lastAssistantMsg) {
-                    // 解析 Tool Call 信息
-                    //todo
-                    const lines = msg.content.split('\n');
-                    const toolName = lines[0].replace('Call ', '').trim();
-                    const toolArgs = lines.slice(1).join('\n');
-                    lastAssistantMsg.toolCalls.push({
-                      function: {
-                        name: toolName || 'Tool',
-                        arguments: toolArgs || '{}'
-                      }
-                    });
-                  } else {
-                    // Tool Result 作为独立消息
-                    parsedMessages.push({
-                      role: 'tool',
-                      roleLabel: 'Tool Result',
-                      content: msg.content,
-                      renderedContent: msg.content,
-                      reasoningContent: '',
-                      toolCalls: []
-                    });
-                  }
-                }
-              });
-
-            messages.value = parsedMessages;
+            messages.value = parseHistoryMessages(historyMessages);
             return;
           }
         }
