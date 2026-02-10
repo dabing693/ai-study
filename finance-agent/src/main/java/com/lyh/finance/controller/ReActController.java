@@ -1,7 +1,7 @@
 package com.lyh.finance.controller;
 
 import com.lyh.base.agent.context.RequestContext;
-import com.lyh.finance.agent.ReActAgent;
+import com.lyh.base.agent.define.ReActAgent;
 import com.lyh.base.agent.domain.ChatResponse;
 import com.lyh.base.agent.domain.StreamEvent;
 import com.lyh.finance.interceptor.AuthInterceptor;

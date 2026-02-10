@@ -1,7 +1,7 @@
 package com.lyh.finance.agent;
 
-import com.lyh.finance.agent.react.FinanceExpertAgent;
-import com.lyh.finance.agent.simple.InvestorAgent;
+import com.lyh.finance.agents.FinanceExpertAgent;
+import com.lyh.finance.agents.InvestorAgent;
 import com.lyh.finance.tools.AccountTool;
 import jakarta.annotation.Resource;
 import org.junit.jupiter.api.Test;
@@ -9,7 +9,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 
 import java.util.*;
 import java.util.concurrent.Callable;
-import java.util.function.Function;
 
 /**
  * @author lengYinHui

@@ -1,6 +1,6 @@
-package com.lyh.finance.agent.react;
+package com.lyh.finance.agents;
 
-import com.lyh.finance.agent.ReActAgent;
+import com.lyh.base.agent.define.ReActAgent;
 import com.lyh.base.agent.domain.message.SystemMessage;
 import com.lyh.base.agent.memory.MemoryManager;
 import com.lyh.base.agent.model.chat.ChatModel;

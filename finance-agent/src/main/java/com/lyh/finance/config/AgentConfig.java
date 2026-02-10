@@ -1,7 +1,7 @@
 package com.lyh.finance.config;
 
-import com.lyh.finance.agent.react.FinanceExpertAgent;
-import com.lyh.finance.agent.simple.InvestorAgent;
+import com.lyh.finance.agents.FinanceExpertAgent;
+import com.lyh.finance.agents.InvestorAgent;
 import com.lyh.base.agent.memory.MemoryManager;
 import com.lyh.base.agent.model.chat.ChatModel;
 import com.lyh.base.agent.tool.ToolBuilder;

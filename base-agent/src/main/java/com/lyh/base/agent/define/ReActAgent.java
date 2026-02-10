@@ -1,4 +1,4 @@
-package com.lyh.finance.agent;
+package com.lyh.base.agent.define;
 
 import com.lyh.base.agent.domain.ChatResponse;
 import com.lyh.base.agent.domain.StreamChatResult;

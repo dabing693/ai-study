@@ -1,6 +1,6 @@
-package com.lyh.finance.agent.simple;
+package com.lyh.finance.agents;
 
-import com.lyh.finance.agent.SimpleAgent;
+import com.lyh.base.agent.define.SimpleAgent;
 import com.lyh.base.agent.model.chat.ChatModel;
 import com.lyh.base.agent.tool.ToolManager;
 
