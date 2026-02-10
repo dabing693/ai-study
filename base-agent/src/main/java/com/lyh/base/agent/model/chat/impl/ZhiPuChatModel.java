@@ -3,10 +3,7 @@ package com.lyh.base.agent.model.chat.impl;
 import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
 import com.alibaba.fastjson2.annotation.JSONField;
-import com.lyh.base.agent.domain.ChatRequest;
-import com.lyh.base.agent.domain.ChatResponse;
-import com.lyh.base.agent.domain.FunctionTool;
-import com.lyh.base.agent.domain.StreamChatResult;
+import com.lyh.base.agent.domain.*;
 import com.lyh.base.agent.domain.message.AssistantMessage;
 import com.lyh.base.agent.domain.message.Message;
 import com.lyh.base.agent.model.chat.ChatModel;
@@ -63,7 +60,7 @@ public class ZhiPuChatModel extends ChatModel {
     @Override
     public StreamChatResult stream(List<Message> messages,
                                    List<FunctionTool> tools,
-                                   Consumer<String> onDelta) {
+                                   Consumer<StreamEvent> eventConsumer) {
         ChatRequest request = new ChatRequest();
         request.setMessages(messages);
         request.setModel(chatModelProperty.getModelName());
@@ -72,7 +69,7 @@ public class ZhiPuChatModel extends ChatModel {
         if (!CollectionUtils.isEmpty(tools)) {
             request.setTools(tools);
         }
-        return streamCall(request, onDelta);
+        return streamCall(request, eventConsumer);
     }
 
     private ChatResponse call(ChatRequest request) {
@@ -83,7 +80,7 @@ public class ZhiPuChatModel extends ChatModel {
         return restTemplate.postForObject(chatModelProperty.getBaseUrl(), httpEntity, ChatResponse.class);
     }
 
-    private StreamChatResult streamCall(ChatRequest request, Consumer<String> onDelta) {
+    private StreamChatResult streamCall(ChatRequest request, Consumer<StreamEvent> eventConsumer) {
         String requestBody = JSONObject.toJSONString(request);
         HttpRequest httpRequest = HttpRequest.newBuilder()
                 .uri(URI.create(chatModelProperty.getBaseUrl()))
@@ -94,19 +91,27 @@ public class ZhiPuChatModel extends ChatModel {
                 .build();
 
         StringBuilder contentBuilder = new StringBuilder();
-        Map<Integer, AssistantMessage.ToolCall> toolCallMap = new LinkedHashMap<>();
+        StringBuilder reasoningBuilder = new StringBuilder();
+        StringBuilder toolCallsBuilder = new StringBuilder();
         try {
             HttpClient client = HttpClient.newHttpClient();
             HttpResponse<java.util.stream.Stream<String>> response =
                     client.send(httpRequest, HttpResponse.BodyHandlers.ofLines());
-            response.body().forEach(line -> handleStreamLine(line, onDelta, contentBuilder, toolCallMap));
+            response.body().forEach(line -> handleStreamLine(line, eventConsumer, contentBuilder,
+                    reasoningBuilder, toolCallsBuilder));
         } catch (IOException | InterruptedException e) {
             throw new RuntimeException("Stream call failed", e);
         }
 
         AssistantMessage message = new AssistantMessage(contentBuilder.toString());
-        if (!toolCallMap.isEmpty()) {
-            message.setToolCalls(new ArrayList<>(toolCallMap.values()));
+        if (StringUtils.hasLength(reasoningBuilder)) {
+            message.setReasoningContent(reasoningBuilder.toString());
+        }
+        if (StringUtils.hasLength(toolCallsBuilder)) {
+            //推送模型输出的工具调用参数
+            List<AssistantMessage.ToolCall> toolCalls = JSONArray.parseArray(toolCallsBuilder.toString(), AssistantMessage.ToolCall.class);
+            eventConsumer.accept(StreamEvent.toolCalls(toolCalls));
+            message.setToolCalls(toolCalls);
         }
         StreamChatResult result = new StreamChatResult();
         result.setMessage(message);
@@ -117,20 +122,22 @@ public class ZhiPuChatModel extends ChatModel {
      * 处理模型流式输出chunk，包括追加content和sse推前端，及特殊处理工具调用参数
      *
      * @param line
-     * @param onDelta
+     * @param eventConsumer
      * @param contentBuilder
-     * @param toolCallMap
+     * @param reasoningBuilder
+     * @param toolCallsBuilder
      */
     private void handleStreamLine(String line,
-                                  Consumer<String> onDelta,
+                                  Consumer<StreamEvent> eventConsumer,
                                   StringBuilder contentBuilder,
-                                  Map<Integer, AssistantMessage.ToolCall> toolCallMap) {
+                                  StringBuilder reasoningBuilder,
+                                  StringBuilder toolCallsBuilder) {
         if (!StringUtils.hasLength(line)) {
             return;
         }
         String payload = line.trim();
         if (payload.startsWith(PAYLOAD_PREFIX)) {
-            payload = payload.substring(5).trim();
+            payload = payload.substring(PAYLOAD_PREFIX.length()).trim();
         }
         if (!StringUtils.hasLength(payload) || PAYLOAD_END.equals(payload)) {
             return;
@@ -151,58 +158,25 @@ public class ZhiPuChatModel extends ChatModel {
         if (delta == null) {
             return;
         }
+        // 处理推理内容 (reasoning_content)
+        String deltaReasoning = Optional.ofNullable(delta.getReasoningContent()).orElse("");
+        if (StringUtils.hasLength(deltaReasoning)) {
+            //追加模型思考chunk
+            reasoningBuilder.append(deltaReasoning);
+            //推送模型思考chunk
+            eventConsumer.accept(StreamEvent.reasoningDelta(deltaReasoning));
+            // 可以通过回调通知前端推理内容，如果需要单独展示
+        }
         String deltaContent = Optional.ofNullable(delta.getContent()).orElse("");
         if (StringUtils.hasLength(deltaContent)) {
             //追加模型流式输出chunk
             contentBuilder.append(deltaContent);
             //推送模型流式输出chunk
-            onDelta.accept(deltaContent);
+            eventConsumer.accept(StreamEvent.delta(deltaContent));
         }
-        List<AssistantMessage.ToolCall> toolCalls = delta.getToolCalls();
+        String toolCalls = delta.getToolCalls();
         if (toolCalls != null && !toolCalls.isEmpty()) {
-            mergeToolCalls(toolCalls, toolCallMap);
-        }
-    }
-
-    /**
-     * 合并工具调用参数
-     *
-     * @param toolCalls
-     * @param toolCallMap
-     */
-    private void mergeToolCalls(List<AssistantMessage.ToolCall> toolCalls,
-                                Map<Integer, AssistantMessage.ToolCall> toolCallMap) {
-        for (AssistantMessage.ToolCall incoming : toolCalls) {
-            if (incoming == null) {
-                continue;
-            }
-            Integer index = incoming.getIndex();
-            if (index == null) {
-                index = toolCallMap.size();
-            }
-            AssistantMessage.ToolCall toolCall = toolCallMap.computeIfAbsent(index, k -> new AssistantMessage.ToolCall());
-            if (StringUtils.hasLength(incoming.getId())) {
-                toolCall.setId(incoming.getId());
-            }
-            if (StringUtils.hasLength(incoming.getType())) {
-                toolCall.setType(incoming.getType());
-            }
-            AssistantMessage.ToolCall.Function incomingFunction = incoming.getFunction();
-            if (incomingFunction != null) {
-                AssistantMessage.ToolCall.Function function = toolCall.getFunction();
-                if (function == null) {
-                    function = new AssistantMessage.ToolCall.Function();
-                    toolCall.setFunction(function);
-                }
-                if (StringUtils.hasLength(incomingFunction.getName())) {
-                    function.setName(incomingFunction.getName());
-                }
-                if (StringUtils.hasLength(incomingFunction.getArguments())) {
-                    String current = function.getArguments();
-                    function.setArguments(current == null ? incomingFunction.getArguments()
-                            : current + incomingFunction.getArguments());
-                }
-            }
+            toolCallsBuilder.append(toolCalls);
         }
     }
 
@@ -218,8 +192,10 @@ public class ZhiPuChatModel extends ChatModel {
             @Data
             private static class Delta {
                 private String content;
+                @JSONField(name = "reasoning_content")
+                private String reasoningContent;
                 @JSONField(name = "tool_calls")
-                private List<AssistantMessage.ToolCall> toolCalls;
+                private String toolCalls;
             }
         }
     }

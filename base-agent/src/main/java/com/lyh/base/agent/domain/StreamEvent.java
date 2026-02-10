@@ -1,9 +1,12 @@
 package com.lyh.base.agent.domain;
 
+import com.alibaba.fastjson2.JSONArray;
 import com.lyh.base.agent.domain.message.AssistantMessage;
 import com.lyh.base.agent.domain.message.ToolMessage;
 import lombok.Data;
 import org.springframework.util.StringUtils;
+
+import java.util.List;
 
 /**
  * @author lengYinHui
@@ -14,10 +17,18 @@ public class StreamEvent {
     private String type;
     private String role;
     private String content;
-    private String toolName;
-    private String toolArguments;
-    private String toolCallId;
+    private String reasoningContent;
+    private String toolCalls;
     private String conversationId;
+    private Integer assistantIndex;
+
+    public static StreamEvent assistantStart(Integer index) {
+        StreamEvent event = new StreamEvent();
+        event.type = "assistant_start";
+        event.role = "assistant";
+        event.assistantIndex = index;
+        return event;
+    }
 
     public static StreamEvent delta(String content) {
         StreamEvent event = new StreamEvent();
@@ -27,15 +38,19 @@ public class StreamEvent {
         return event;
     }
 
-    public static StreamEvent toolCall(AssistantMessage.ToolCall toolCall) {
+    public static StreamEvent reasoningDelta(String reasoningContent) {
+        StreamEvent event = new StreamEvent();
+        event.type = "reasoning_delta";
+        event.role = "assistant";
+        event.reasoningContent = reasoningContent;
+        return event;
+    }
+
+    public static StreamEvent toolCalls(List<AssistantMessage.ToolCall> toolCalls) {
         StreamEvent event = new StreamEvent();
         event.type = "tool_call";
-        event.role = "tool";
-        if (toolCall != null && toolCall.getFunction() != null) {
-            event.toolName = toolCall.getFunction().getName();
-            event.toolArguments = toolCall.getFunction().getArguments();
-        }
-        event.toolCallId = toolCall != null ? toolCall.getId() : null;
+        event.role = "assistant";
+        event.toolCalls = JSONArray.toJSONString(toolCalls);
         return event;
     }
 
@@ -44,7 +59,6 @@ public class StreamEvent {
         event.type = "tool_result";
         event.role = "tool";
         event.content = toolMessage != null ? toolMessage.getContent() : null;
-        event.toolCallId = toolMessage != null ? toolMessage.getToolCallId() : null;
         return event;
     }
 

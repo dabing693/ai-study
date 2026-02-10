@@ -87,15 +87,15 @@
               <div class="chat__bubble">
                 <div class="chat__role">{{ msg.roleLabel }}</div>
                 <div
-                  v-if="msg.role === 'assistant' && msg.streaming && !msg.content"
+                  v-if="msg.role === 'assistant' && msg.streaming && !getAssistantDisplayContent(msg)"
                   class="chat__content chat__typing"
                 >
                   <span></span><span></span><span></span>
                 </div>
                 <Markdown
-                  v-else
+                  v-else-if="getAssistantDisplayContent(msg)"
                   class="chat__content"
-                  :source="msg.renderedContent || msg.content"
+                  :source="getAssistantDisplayContent(msg)"
                   :breaks="false"
                 />
                 <div class="chat__actions">
@@ -103,7 +103,7 @@
                     class="chat__action-btn"
                     type="button"
                     title="复制"
-                    @click="copyMessage(msg.content)"
+                    @click="copyMessage(msg.role === 'assistant' ? getAssistantDisplayContent(msg) : msg.content)"
                   >
                     <svg viewBox="0 0 24 24" aria-hidden="true">
                       <path d="M16 1H4a2 2 0 0 0-2 2v14h2V3h12V1zm3 4H8a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2zm0 16H8V7h11v14z"/>
@@ -257,27 +257,77 @@ const loadConversation = async (conv) => {
       if (response && response.ok) {
         const historyMessages = await response.json();
         // 转换消息格式
-        messages.value = historyMessages
+        const parsedMessages = [];
+        let lastAssistantMsg = null;
+
+        historyMessages
           .filter(msg => msg.type === 'user' || msg.type === 'assistant' || msg.type === 'tool')
-          .map(msg => {
-            let roleLabel = '助手';
+          .forEach(msg => {
             if (msg.type === 'user') {
-              roleLabel = '你';
+              parsedMessages.push({
+                role: 'user',
+                roleLabel: '你',
+                content: msg.content,
+                renderedContent: msg.content,
+                reasoningContent: '',
+                toolCalls: []
+              });
+              lastAssistantMsg = null;
+            } else if (msg.type === 'assistant') {
+              const assistantMsg = {
+                role: 'assistant',
+                roleLabel: '助手',
+                content: msg.content,
+                renderedContent: msg.content,
+                reasoningContent: '',
+                toolCalls: []
+              };
+              try {
+                const jsonData = JSON.parse(msg.content);
+                if (jsonData.content) {
+                  assistantMsg.content = jsonData.content;
+                }
+                if (jsonData.reasoning_content) {
+                  assistantMsg.reasoningContent = jsonData.reasoning_content;
+                }
+                if (jsonData.tool_calls) {
+                  assistantMsg.toolCalls = JSON.parse(jsonData.tool_calls);
+                }
+              } catch (e) {
+                assistantMsg.content = msg.content;
+              }
+              assistantMsg.renderedContent = assistantMsg.content;
+              parsedMessages.push(assistantMsg);
+              lastAssistantMsg = assistantMsg;
             } else if (msg.type === 'tool') {
-              // 根据内容判断是 Tool Call 还是 Tool Result
-              if (msg.content && msg.content.startsWith('Call ')) {
-                roleLabel = 'Tool Call';
+              // Tool Call 消息合并到上一条助手消息的 toolCalls 中
+              if (msg.content && msg.content.startsWith('Call ') && lastAssistantMsg) {
+                //todo
+                // 解析 Tool Call 信息
+                const lines = msg.content.split('\n');
+                const toolName = lines[0].replace('Call ', '').trim();
+                const toolArgs = lines.slice(1).join('\n');
+                lastAssistantMsg.toolCalls.push({
+                  function: {
+                    name: toolName || 'Tool',
+                    arguments: toolArgs || '{}'
+                  }
+                });
               } else {
-                roleLabel = 'Tool Result';
+                // Tool Result 作为独立消息
+                parsedMessages.push({
+                  role: 'tool',
+                  roleLabel: 'Tool Result',
+                  content: msg.content,
+                  renderedContent: msg.content,
+                  reasoningContent: '',
+                  toolCalls: []
+                });
               }
             }
-            return {
-              role: msg.type === 'tool' ? 'tool' : msg.type,
-              roleLabel: roleLabel,
-              content: msg.content,
-              renderedContent: msg.content
-            };
           });
+
+        messages.value = parsedMessages;
       }
     } catch (err) {
       console.error('加载历史消息失败:', err);
@@ -323,6 +373,37 @@ const copyMessage = async (content) => {
   } catch (err) {
     console.error('复制失败:', err);
   }
+};
+
+/**
+ * 获取助手消息的展示内容，与后端 storedContent() 方法逻辑保持一致
+ * 组合 reasoningContent、content 和 toolCalls
+ */
+const getAssistantDisplayContent = (msg) => {
+  if (!msg || msg.role !== 'assistant') return msg?.content || '';
+
+  const reasoningContent = msg.reasoningContent ? `思考内容：\n${msg.reasoningContent}` : '';
+  const content = msg.content || '';
+  const toolCalls = msg.toolCalls || [];
+
+  // 组合内容：reasoningContent + content
+  let fullContent = reasoningContent;
+  if (content) {
+    fullContent = reasoningContent ? `${reasoningContent}\n\n${content}` : content;
+  }
+
+  // 如果有 toolCalls，追加到内容中
+  if (toolCalls.length > 0) {
+    const toolCallsText = toolCalls.map(tc => {
+      const name = tc.function?.name || 'Tool';
+      const args = tc.function?.arguments || '{}';
+      return `工具名称: ${name} \n\n工具参数:\n\`\`\`json\n${args}\n\`\`\``;
+    }).join('\n\n');
+
+    fullContent = fullContent ? `${fullContent}\n\n${toolCallsText}` : toolCallsText;
+  }
+
+  return fullContent;
 };
 
 const scrollToBottom = () => {
@@ -503,6 +584,8 @@ const sendMessage = async () => {
     roleLabel: "助手",
     content: "",
     renderedContent: "",
+    reasoningContent: "",
+    toolCalls: [],
     streaming: true,
   });
   messages.value.push(assistantMessage);
@@ -510,13 +593,30 @@ const sendMessage = async () => {
   scrollToBottom();
   streamingActive.value = true;
   startAutoScroll();
-  const insertToolMessage = (toolMsg) => {
-    const idx = messages.value.indexOf(assistantMessage);
-    if (idx >= 0) {
-      messages.value.splice(idx, 0, toolMsg);
-    } else {
-      messages.value.push(toolMsg);
+
+  // 用于跟踪当前活跃的 assistant 消息（支持多次调用生成多个消息块）
+  let currentAssistantMessage = assistantMessage;
+
+  // 创建新的 assistant 消息块
+  const createNewAssistantMessage = (index) => {
+    // 先结束之前的消息
+    if (currentAssistantMessage) {
+      currentAssistantMessage.streaming = false;
+      currentAssistantMessage.renderedContent = currentAssistantMessage.content;
     }
+    // 创建新消息
+    const newMsg = reactive({
+      role: "assistant",
+      roleLabel: "助手",
+      content: "",
+      renderedContent: "",
+      reasoningContent: "",
+      toolCalls: [],
+      streaming: true,
+    });
+    messages.value.push(newMsg);
+    currentAssistantMessage = newMsg;
+    nextTick(() => scrollToBottom());
   };
 
   let isNewSession = false;
@@ -564,12 +664,37 @@ const sendMessage = async () => {
         }
         return;
       }
+      if (eventName === "assistant_start") {
+        try {
+          const payload = JSON.parse(data);
+          const index = payload.assistantIndex || 0;
+          if (index > 0) {
+            createNewAssistantMessage(index);
+          }
+        } catch (err) {
+          return;
+        }
+        return;
+      }
       if (eventName === "delta") {
         try {
           const payload = JSON.parse(data);
-          if (payload.content) {
-            assistantMessage.content += payload.content;
-            scheduleFlush(assistantMessage);
+          if (payload.content && currentAssistantMessage) {
+            currentAssistantMessage.content += payload.content;
+            scheduleFlush(currentAssistantMessage);
+          }
+        } catch (err) {
+          return;
+        }
+        return;
+      }
+      if (eventName === "reasoning_delta") {
+        try {
+          const payload = JSON.parse(data);
+          if (payload.reasoningContent && currentAssistantMessage) {
+            currentAssistantMessage.reasoningContent = payload.reasoningContent;
+            await nextTick();
+            scrollToBottom();
           }
         } catch (err) {
           return;
@@ -579,17 +704,14 @@ const sendMessage = async () => {
       if (eventName === "tool_call") {
         try {
           const payload = JSON.parse(data);
-          insertToolMessage({
-            role: "tool",
-            roleLabel: "Tool Call",
-            content:
-              "Call " +
-              (payload.toolName || "Tool") +
-              "\n" +
-              (payload.toolArguments || ""),
-          });
-          await nextTick();
-          scrollToBottom();
+          // 将 toolCall 添加到当前 assistant 消息的 toolCalls 数组中
+          // Tool Call 是模型返回的一部分，属于助手消息块
+          if (currentAssistantMessage) {
+            const cur_tool_calls = JSON.parse(payload.toolCalls)
+            currentAssistantMessage.toolCalls.push(...cur_tool_calls);
+            await nextTick();
+            scrollToBottom();
+          }
         } catch (err) {
           return;
         }
@@ -598,7 +720,8 @@ const sendMessage = async () => {
       if (eventName === "tool_result") {
         try {
           const payload = JSON.parse(data);
-          insertToolMessage({
+          // Tool Result 是工具执行的结果，作为独立消息
+          messages.value.push({
             role: "tool",
             roleLabel: "Tool Result",
             content: payload.content || "",
@@ -611,7 +734,7 @@ const sendMessage = async () => {
         return;
       }
       if (eventName === "done") {
-        await finalizeStreamingState(assistantMessage);
+        await finalizeStreamingState(currentAssistantMessage);
         if (sseController) {
           sseController.abort();
           sseController = null;
@@ -625,7 +748,7 @@ const sendMessage = async () => {
         } catch (err) {
           error.value = "Request failed. Please check the backend service.";
         }
-        await finalizeStreamingState(assistantMessage);
+        await finalizeStreamingState(currentAssistantMessage);
         if (sseController) {
           sseController.abort();
           sseController = null;
@@ -637,7 +760,7 @@ const sendMessage = async () => {
       return;
     }
     error.value = "Request failed. Please check the backend service.";
-    await finalizeStreamingState(assistantMessage);
+    await finalizeStreamingState(currentAssistantMessage);
     if (sseController) {
       sseController.abort();
       sseController = null;
@@ -661,26 +784,79 @@ onMounted(async () => {
           const historyMessages = await response.json();
           if (historyMessages && historyMessages.length > 0) {
             // 有历史数据，正常显示
-            messages.value = historyMessages
+            const parsedMessages = [];
+            let lastAssistantMsg = null;
+
+            historyMessages
               .filter(msg => msg.type === 'user' || msg.type === 'assistant' || msg.type === 'tool')
-              .map(msg => {
-                let roleLabel = '助手';
+              .forEach(msg => {
                 if (msg.type === 'user') {
-                  roleLabel = '你';
+                  parsedMessages.push({
+                    role: 'user',
+                    roleLabel: '你',
+                    content: msg.content,
+                    renderedContent: msg.content,
+                    reasoningContent: '',
+                    toolCalls: []
+                  });
+                  lastAssistantMsg = null;
+                } else if (msg.type === 'assistant') {
+                  const assistantMsg = {
+                    role: 'assistant',
+                    roleLabel: '助手',
+                    content: msg.content,
+                    renderedContent: msg.content,
+                    reasoningContent: '',
+                    toolCalls: []
+                  };
+                  try {
+                    const jsonData = JSON.parse(msg.content);
+                    if (jsonData.content) {
+                      assistantMsg.content = jsonData.content;
+                    }
+                    if (jsonData.reasoning_content) {
+                      assistantMsg.reasoningContent = jsonData.reasoning_content;
+                    }
+                    if (jsonData.tool_calls) {
+                      assistantMsg.toolCalls = JSON.parse(jsonData.tool_calls);
+                    }
+                  } catch (e) {
+                    assistantMsg.content = msg.content;
+                  }
+                  assistantMsg.renderedContent = assistantMsg.content;
+                  console.log("助手消息");
+                  console.log(assistantMsg);
+                  parsedMessages.push(assistantMsg);
+                  lastAssistantMsg = assistantMsg;
                 } else if (msg.type === 'tool') {
-                  if (msg.content && msg.content.startsWith('Call ')) {
-                    roleLabel = 'Tool Call';
+                  // Tool Call 消息合并到上一条助手消息的 toolCalls 中
+                  if (msg.content && msg.content.startsWith('Call ') && lastAssistantMsg) {
+                    // 解析 Tool Call 信息
+                    //todo
+                    const lines = msg.content.split('\n');
+                    const toolName = lines[0].replace('Call ', '').trim();
+                    const toolArgs = lines.slice(1).join('\n');
+                    lastAssistantMsg.toolCalls.push({
+                      function: {
+                        name: toolName || 'Tool',
+                        arguments: toolArgs || '{}'
+                      }
+                    });
                   } else {
-                    roleLabel = 'Tool Result';
+                    // Tool Result 作为独立消息
+                    parsedMessages.push({
+                      role: 'tool',
+                      roleLabel: 'Tool Result',
+                      content: msg.content,
+                      renderedContent: msg.content,
+                      reasoningContent: '',
+                      toolCalls: []
+                    });
                   }
                 }
-                return {
-                  role: msg.type === 'tool' ? 'tool' : msg.type,
-                  roleLabel: roleLabel,
-                  content: msg.content,
-                  renderedContent: msg.content
-                };
               });
+
+            messages.value = parsedMessages;
             return;
           }
         }

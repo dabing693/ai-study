@@ -43,7 +43,7 @@ public abstract class ReActAgent extends BaseAgent {
             addAndSave(messageList, planResponse.getMessage());
             if (planResponse.hasToolCalls()) {
                 //行动，获得tool消息
-                List<Message> toolMessages = actionWithCall(planResponse.getToolCalls());
+                List<Message> toolMessages = action(planResponse.getToolCalls());
                 //添加工具消息
                 addAndSave(messageList, toolMessages);
             } else {
@@ -56,24 +56,22 @@ public abstract class ReActAgent extends BaseAgent {
     public void chatStream(String query, Consumer<StreamEvent> eventConsumer) {
         List<Message> messageList = sense(query);
         for (int i = 0; i < getMaxLoopNum(); i++) {
+            // 发送 assistant_start 事件，标记新的助手消息块开始
+            eventConsumer.accept(StreamEvent.assistantStart(i));
             StreamChatResult streamResult = chatModel.stream(
                     messageList,
                     toolManager.getTools(),
-                    delta -> eventConsumer.accept(StreamEvent.delta(delta))
-            );
-            addAndSave(messageList, streamResult.getMessage());
+                    eventConsumer);
+            AssistantMessage assistantMessage = streamResult.getMessage();
+            addAndSave(messageList, assistantMessage);
             if (streamResult.hasToolCalls()) {
+                // 发送 tool_calls 信息作为 assistant 消息的一部分
                 for (AssistantMessage.ToolCall toolCall : streamResult.getToolCalls()) {
-                    eventConsumer.accept(StreamEvent.toolCall(toolCall));
-                    // 保存 tool call 消息
-                    String callContent = "Call " + (toolCall.getFunction() != null ? toolCall.getFunction().getName() : "Tool")
-                            + "\n" + (toolCall.getFunction() != null ? toolCall.getFunction().getArguments() : "");
-                    ToolMessage callMessage = new ToolMessage(callContent, toolCall.getId());
-                    addAndSave(messageList, callMessage);
                     // 调用工具
                     ToolMessage toolMessage = toolManager.invoke(toolCall);
                     if (toolMessage != null) {
                         addAndSave(messageList, toolMessage);
+                        //推送工具执行结果
                         eventConsumer.accept(StreamEvent.toolResult(toolMessage));
                     }
                 }
@@ -125,29 +123,6 @@ public abstract class ReActAgent extends BaseAgent {
             ToolMessage toolMessage = toolManager.invoke(toolCall);
             //添加工具调用的tool消息
             toolMessageList.add(toolMessage);
-        }
-        return toolMessageList;
-    }
-
-    /**
-     * 行动（保存 tool call 和 tool result）
-     *
-     * @param toolCalls
-     * @return
-     */
-    public List<Message> actionWithCall(List<AssistantMessage.ToolCall> toolCalls) {
-        List<Message> toolMessageList = new ArrayList<>();
-        for (AssistantMessage.ToolCall toolCall : toolCalls) {
-            // 保存 tool call
-            String callContent = "Call " + (toolCall.getFunction() != null ? toolCall.getFunction().getName() : "Tool")
-                    + "\n" + (toolCall.getFunction() != null ? toolCall.getFunction().getArguments() : "");
-            ToolMessage callMessage = new ToolMessage(callContent, toolCall.getId());
-            toolMessageList.add(callMessage);
-            // 调用工具并保存结果
-            ToolMessage toolMessage = toolManager.invoke(toolCall);
-            if (toolMessage != null) {
-                toolMessageList.add(toolMessage);
-            }
         }
         return toolMessageList;
     }

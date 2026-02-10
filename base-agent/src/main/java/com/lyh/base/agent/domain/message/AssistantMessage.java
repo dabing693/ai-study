@@ -44,18 +44,16 @@ public class AssistantMessage extends Message {
     }
 
     public String storedContent() {
-        String reasoningContent = StringUtils.hasLength(this.reasoningContent) ? "思考内容：\n" + this.reasoningContent : "";
-        if (StringUtils.hasLength(getContent())) {
-            String fullContent=reasoningContent + this.getContent();
-            if (CollectionUtils.isEmpty(this.toolCalls)) {
-                return fullContent;
-            } else {
-                return new JSONObject().fluentPut("model_output", fullContent)
-                        .fluentPut("tool_calls", JSONArray.toJSONString(this.toolCalls))
-                        .toJSONString();
-            }
-        } else {
-            return JSONArray.toJSONString(this.toolCalls);
+        JSONObject jsonObject = new JSONObject();
+        if (StringUtils.hasText(this.getContent())) {
+            jsonObject.put("content", this.getContent());
         }
+        if (StringUtils.hasText(this.getReasoningContent())) {
+            jsonObject.put("reasoning_content", this.getReasoningContent());
+        }
+        if (!CollectionUtils.isEmpty(this.getToolCalls())) {
+            jsonObject.put("tool_calls", JSONArray.toJSONString(this.getToolCalls()));
+        }
+        return jsonObject.toJSONString();
     }
 }

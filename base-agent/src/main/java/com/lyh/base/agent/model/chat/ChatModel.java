@@ -3,6 +3,7 @@ package com.lyh.base.agent.model.chat;
 import com.lyh.base.agent.domain.ChatResponse;
 import com.lyh.base.agent.domain.FunctionTool;
 import com.lyh.base.agent.domain.StreamChatResult;
+import com.lyh.base.agent.domain.StreamEvent;
 import com.lyh.base.agent.domain.message.Message;
 import com.lyh.base.agent.model.chat.property.ChatModelProperty;
 import org.springframework.web.client.RestTemplate;
@@ -42,5 +43,5 @@ public abstract class ChatModel {
 
     public abstract StreamChatResult stream(List<Message> messages,
                                             List<FunctionTool> tools,
-                                            Consumer<String> onDelta);
+                                            Consumer<StreamEvent> eventConsumer);
 }
