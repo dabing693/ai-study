@@ -360,7 +360,6 @@ const parseHistoryMessages = (historyMessages) => {
         const assistantMsg = {
           role: 'assistant',
           roleLabel: '助手',
-          content: msg.content,
           reasoningContent: '',
           toolCalls: []
         };
