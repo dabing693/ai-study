@@ -127,13 +127,15 @@ const handleSubmit = async () => {
 }
 
 .auth-modal {
-  background: white;
-  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 20px;
   padding: 32px;
   width: 100%;
   max-width: 400px;
   position: relative;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
 }
 
 .auth-modal__close {
@@ -189,16 +191,18 @@ const handleSubmit = async () => {
 
 .auth-modal__field input {
   padding: 12px 16px;
-  border: 1px solid #ddd;
-  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
   font-size: 15px;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition: all 0.2s;
 }
 
 .auth-modal__field input:focus {
   outline: none;
-  border-color: #10a37f;
-  box-shadow: 0 0 0 3px rgba(16, 163, 127, 0.1);
+  background: #fff;
+  border-color: #ef4444;
+  box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.1);
 }
 
 .auth-modal__error {
@@ -211,7 +215,7 @@ const handleSubmit = async () => {
 }
 
 .auth-modal__submit {
-  background: #10a37f;
+  background: #ef4444;
   color: white;
   border: none;
   padding: 14px;
@@ -224,7 +228,9 @@ const handleSubmit = async () => {
 }
 
 .auth-modal__submit:hover:not(:disabled) {
-  background: #0d8c6d;
+  background: #dc2626;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
 }
 
 .auth-modal__submit:disabled {
@@ -242,7 +248,7 @@ const handleSubmit = async () => {
 .auth-modal__switch button {
   background: none;
   border: none;
-  color: #10a37f;
+  color: #ef4444;
   font-weight: 500;
   cursor: pointer;
   margin-left: 4px;

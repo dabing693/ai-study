@@ -141,10 +141,12 @@ onMounted(() => {
 }
 
 .history-panel {
-  background: white;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(20px);
   width: 320px;
   height: 100vh;
-  box-shadow: 4px 0 20px rgba(0, 0, 0, 0.1);
+  box-shadow: 4px 0 20px rgba(0, 0, 0, 0.05);
+  border-right: 1px solid rgba(255, 255, 255, 0.2);
   display: flex;
   flex-direction: column;
   animation: slideIn 0.3s ease;
@@ -217,7 +219,8 @@ onMounted(() => {
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: #e8f5e9;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.05);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -227,7 +230,7 @@ onMounted(() => {
 .history-item__icon svg {
   width: 18px;
   height: 18px;
-  fill: #4caf50;
+  fill: #666;
 }
 
 .history-item__content {

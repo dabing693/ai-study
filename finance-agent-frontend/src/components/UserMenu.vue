@@ -82,11 +82,13 @@ const handleLogout = () => {
 }
 
 .user-menu {
-  background: white;
-  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 16px;
   padding: 20px;
-  min-width: 240px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+  min-width: 260px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.1);
   animation: slideIn 0.2s ease;
 }
 
@@ -159,7 +161,7 @@ const handleLogout = () => {
 .user-menu__stat-value {
   font-size: 20px;
   font-weight: 700;
-  color: #10a37f;
+  color: #ef4444;
 }
 
 .user-menu__stat-label {

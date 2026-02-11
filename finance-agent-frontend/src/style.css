@@ -1,19 +1,19 @@
 :root {
   color-scheme: light;
-  --bg: #f7f7f3;
-  --panel: #ffffff;
-  --ink: #121212;
-  --muted: #6b6b6b;
-  --line: #e6e4df;
-  --accent: #1d6b5a;
-  --accent-soft: rgba(29, 107, 90, 0.12);
-  --shadow: 0 18px 50px rgba(17, 22, 26, 0.08);
-  --radius-lg: 28px;
-  --radius-md: 18px;
-  --radius-sm: 12px;
+  --bg: #e4e4e7;
+  --panel: rgba(255, 255, 255, 0.8);
+  --ink: #18181b;
+  --muted: #71717a;
+  --line: rgba(0, 0, 0, 0.06);
+  --accent: #ef4444;
+  --accent-soft: rgba(239, 68, 68, 0.12);
+  --shadow: 0 12px 40px rgba(0, 0, 0, 0.06);
+  --radius-lg: 24px;
+  --radius-md: 16px;
+  --radius-sm: 10px;
   --sidebar-w: 72px;
-  --font-title: "Space Grotesk", "Noto Sans SC", sans-serif;
-  --font-body: "Noto Sans SC", "Space Grotesk", sans-serif;
+  --font-title: "Space Grotesk", system-ui, -apple-system, sans-serif;
+  --font-body: system-ui, -apple-system, "Noto Sans SC", sans-serif;
 }
 
 * {
@@ -25,7 +25,7 @@
 body {
   min-height: 100vh;
   font-family: var(--font-body);
-  background: radial-gradient(circle at 20% 20%, #ffffff 0%, #f2f1ec 45%, #ece9e2 100%);
+  background: var(--bg);
   color: var(--ink);
 }
 
@@ -40,9 +40,9 @@ body {
 
 .sidebar {
   width: var(--sidebar-w);
-  border-right: 1px solid var(--line);
-  background: rgba(255, 255, 255, 0.9);
-  backdrop-filter: blur(10px);
+  border-right: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.5);
+  backdrop-filter: blur(20px);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -158,7 +158,7 @@ body {
 }
 
 .topbar__brand-container:hover {
-  background: var(--line);
+  background: rgba(255, 255, 255, 0.3);
 }
 
 .category-menu {
@@ -205,8 +205,8 @@ body {
 .chip {
   padding: 8px 16px;
   border-radius: 999px;
-  background: #f2f1ec;
-  border: none;
+  background: rgba(255, 255, 255, 0.5);
+  border: 1px solid var(--line);
   font-weight: 500;
   cursor: pointer;
 }
@@ -214,9 +214,9 @@ body {
 .icon-btn {
   width: 36px;
   height: 36px;
-  border: 1px solid var(--line);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 50%;
-  background: #fff;
+  background: rgba(255, 255, 255, 0.5);
   display: grid;
   place-items: center;
   cursor: pointer;
@@ -351,11 +351,12 @@ body {
 
 .chat__bubble {
   max-width: 70%;
-  background: var(--panel);
+  background: rgba(255, 255, 255, 0.65);
+  backdrop-filter: blur(12px);
   border-radius: var(--radius-md);
-  padding: 12px 16px;
-  box-shadow: var(--shadow);
-  border: 1px solid var(--line);
+  padding: 14px 18px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.4);
 }
 
 .chat__item.assistant .chat__bubble,
@@ -365,9 +366,10 @@ body {
 }
 
 .chat__item.user .chat__bubble {
-  background: #1d6b5a;
-  color: #f9faf9;
-  border-color: transparent;
+  background: var(--accent);
+  color: white;
+  border: none;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
 }
 
 .chat__item.assistant .chat__bubble,
@@ -380,9 +382,9 @@ body {
 }
 
 .chat__item.tool .chat__bubble {
-  background: #f2f1ec;
-  border-color: #e0ded8;
-  color: #2e2e2e;
+  background: rgba(255, 255, 255, 0.4);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: #444;
 }
 
 .chat__role {
@@ -530,10 +532,11 @@ body {
 }
 
 .composer__input {
-  background: #fff;
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(16px);
   border-radius: 999px;
-  border: 1px solid var(--line);
-  padding: 6px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  padding: 8px 12px;
   display: flex;
   align-items: center;
   gap: 10px;
