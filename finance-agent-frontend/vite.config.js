@@ -14,6 +14,16 @@ export default defineConfig({
         target: "http://localhost:9081",
         changeOrigin: true,
       },
+      "/news-api": {
+        target: "http://localhost:5174/api",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/news-api/, ""),
+      },
+      "/news-icons": {
+        target: "http://localhost:5174",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/news-icons/, "/icons"),
+      },
     },
   },
 })

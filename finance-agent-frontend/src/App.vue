@@ -2,7 +2,7 @@
   <div class="app">
     <aside class="sidebar">
       <div class="sidebar__logo">◎</div>
-      <button class="sidebar__icon" type="button" title="新对话" @click="newConversation">
+      <button class="sidebar__icon" :class="{ active: currentView === 'chat' }" type="button" title="新对话" @click="switchToChat">
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <path
             d="M5 5h8a2 2 0 0 1 2 2v6H9a2 2 0 0 0-2 2v4H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z"
@@ -17,6 +17,19 @@
           <path
             d="M10.5 3a7.5 7.5 0 1 0 4.74 13.34l3.7 3.7 1.41-1.41-3.7-3.7A7.5 7.5 0 0 0 10.5 3zm0 2a5.5 5.5 0 1 1 0 11 5.5 5.5 0 0 1 0-11z"
           />
+        </svg>
+      </button>
+      <!-- NewsNow 按钮 -->
+      <button
+        class="sidebar__icon"
+        :class="{ active: currentView === 'news' }"
+        type="button"
+        title="NewsNow"
+        @click="switchToNews"
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/>
+          <path d="M14 17H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/>
         </svg>
       </button>
       <button
@@ -46,8 +59,23 @@
     <main class="main">
       <header class="topbar">
         <div class="topbar__left">
-          <span class="topbar__brand">ChatGPT</span>
-          <span class="topbar__caret">▾</span>
+          <div class="topbar__brand-container" @click="toggleCategoryMenu">
+            <span class="topbar__brand">{{ currentView === 'news' ? currentCategoryName : 'ChatGPT' }}</span>
+            <span class="topbar__caret">▾</span>
+            
+            <!-- 分类切换菜单 -->
+            <div v-if="currentView === 'news' && showCategoryMenu" class="category-menu">
+              <div 
+                v-for="cat in newsCategories" 
+                :key="cat.id" 
+                class="category-menu__item"
+                :class="{ active: currentCategory === cat.id }"
+                @click.stop="selectCategory(cat.id)"
+              >
+                {{ cat.name }}
+              </div>
+            </div>
+          </div>
         </div>
         <div class="topbar__right">
           <button class="chip" type="button">获取 Plus</button>
@@ -68,7 +96,8 @@
         </div>
       </header>
 
-      <section class="content">
+      <section class="content" :class="{ 'content--news': currentView === 'news' }">
+        <template v-if="currentView === 'chat'">
         <div v-if="messages.length === 0" class="welcome">
           <h1 class="welcome__title">今天有什么计划？</h1>
           <p class="welcome__subtitle">
@@ -166,6 +195,18 @@
           </div>
           <div class="composer__hint" v-if="error">{{ error }}</div>
         </div>
+        </template>
+
+        <div v-if="currentView === 'news'" class="news-container custom-scrollbar">
+          <div class="news-grid">
+            <NewsCard 
+              v-for="source in newsSources" 
+              :key="source.id"
+              :source-id="source.id"
+              :source-meta="source"
+            />
+          </div>
+        </div>
       </section>
     </main>
 
@@ -195,17 +236,127 @@
  * @author claude code with kimi
  * @date 2026/2/6
  */
-import { nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
+import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
 import Markdown from "vue3-markdown-it";
 import AuthModal from "./components/AuthModal.vue";
 import UserMenu from "./components/UserMenu.vue";
 import ConversationHistory from "./components/ConversationHistory.vue";
+import NewsCard from "./components/NewsCard.vue";
 import { useAuthStore } from "./stores/auth.js";
 
 const authStore = useAuthStore();
 const showAuthModal = ref(false);
 const showUserMenu = ref(false);
 const showHistory = ref(false);
+const currentView = ref('chat'); // 'chat' | 'news'
+
+const switchToChat = () => {
+  currentView.value = 'chat';
+  newConversation();
+};
+
+const switchToNews = () => {
+  currentView.value = 'news';
+};
+
+const currentCategory = ref('finance');
+const showCategoryMenu = ref(false);
+
+const newsCategories = [
+  { id: 'finance', name: '财经' },
+  { id: 'china', name: '国内' },
+  { id: 'world', name: '国际' },
+  { id: 'tech', name: '科技' },
+  { id: 'hottest', name: '最热' },
+  { id: 'realtime', name: '实时' }
+];
+
+const categorySources = {
+  finance: [
+    { id: 'wallstreetcn-hot', name: '华尔街见闻', color: 'blue', title: '最热' },
+    { id: 'cls-telegraph', name: '财联社', color: 'red', title: '电报' },
+    { id: 'jin10', name: '金十数据', color: 'blue' },
+    { id: 'xueqiu-hotstock', name: '雪球', color: 'blue', title: '热门股票' },
+    { id: 'gelonghui', name: '格隆汇', color: 'blue', title: '事件' },
+    { id: 'fastbull-express', name: '法布财经', color: 'emerald', title: '快讯' },
+    { id: 'mktnews-flash', name: 'MKTNews', color: 'indigo', title: '快讯' },
+    { id: 'wallstreetcn-news', name: '华尔街见闻', color: 'blue', title: '最新' },
+    { id: 'fastbull-news', name: '法布财经', color: 'emerald', title: '头条' },
+    { id: 'cls-depth', name: '财联社', color: 'red', title: '深度' },
+    { id: 'cls-hot', name: '财联社', color: 'red', title: '热门' }
+  ],
+  china: [
+    { id: 'weibo', name: '微博', color: 'red', title: '实时热搜' },
+    { id: 'zhihu', name: '知乎', color: 'blue' },
+    { id: 'baidu', name: '百度热搜', color: 'blue' },
+    { id: 'toutiao', name: '今日头条', color: 'red' },
+    { id: 'bilibili-hot-search', name: '哔哩哔哩', color: 'blue', title: '热搜' },
+    { id: 'thepaper', name: '澎湃新闻', color: 'gray', title: '热榜' }
+  ],
+  tech: [
+    { id: '36kr-renqi', name: '36氪', color: 'blue', title: '人气榜' },
+    { id: 'github-trending-today', name: 'Github', color: 'gray', title: 'Today' },
+    { id: 'ithome', name: 'IT之家', color: 'red' },
+    { id: 'sspai', name: '少数派', color: 'red' },
+    { id: 'juejin', name: '稀土掘金', color: 'blue' },
+    { id: 'hackernews', name: 'Hacker News', color: 'orange' }
+  ],
+  world: [
+    { id: 'zaobao', name: '联合早报', color: 'red', title: '实时' },
+    { id: 'sputniknewscn', name: '卫星通讯社', color: 'orange' },
+    { id: 'cankaoxiaoxi', name: '参考消息', color: 'red' },
+    { id: 'kaopu', name: '靠谱新闻', color: 'gray' },
+    { id: 'steam', name: 'Steam', color: 'blue', title: '在线人数' }
+  ],
+  hottest: [
+    { id: 'weibo', name: '微博', color: 'red', title: '实时热搜' },
+    { id: 'zhihu', name: '知乎', color: 'blue' },
+    { id: 'douyin', name: '抖音', color: 'gray' },
+    { id: 'kuaishou', name: '快手', color: 'orange' },
+    { id: 'baidu', name: '百度热搜', color: 'blue' }
+  ],
+  realtime: [
+    { id: 'cls-telegraph', name: '财联社', color: 'red', title: '电报' },
+    { id: 'jin10', name: '金十数据', color: 'blue' },
+    { id: 'wallstreetcn-quick', name: '华尔街见闻', color: 'blue', title: '快讯' },
+    { id: '36kr-quick', name: '36氪', color: 'blue', title: '快讯' },
+    { id: 'ithome', name: 'IT之家', color: 'red' }
+  ]
+};
+
+const currentCategoryName = computed(() => {
+  return newsCategories.find(c => c.id === currentCategory.value)?.name || 'NewsNow';
+});
+
+const newsSources = computed(() => {
+  return categorySources[currentCategory.value] || [];
+});
+
+const toggleCategoryMenu = () => {
+  if (currentView.value === 'news') {
+    showCategoryMenu.value = !showCategoryMenu.value;
+  }
+};
+
+const selectCategory = (id) => {
+  currentCategory.value = id;
+  showCategoryMenu.value = false;
+};
+
+// 点击外部关闭菜单
+const closeMenuHandler = (e) => {
+  if (!e.target.closest('.topbar__brand-container')) {
+    showCategoryMenu.value = false;
+  }
+};
+
+onMounted(() => {
+  window.addEventListener('click', closeMenuHandler);
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener('click', closeMenuHandler);
+});
 
 const openAuthModal = () => {
   showAuthModal.value = true;
