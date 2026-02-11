@@ -32,3 +32,5 @@ build/
 .vscode/
 .ai/
 /tmp-data/
+/openspec/
+/.opencode/
