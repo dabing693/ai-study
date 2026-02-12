@@ -167,6 +167,7 @@
           <div class="composer__input">
             <span class="composer__plus">＋</span>
             <textarea
+              ref="textareaRef"
               v-model="input"
               class="composer__textarea"
               placeholder="有问题，尽管问"
@@ -451,6 +452,7 @@ const error = ref("");
 const chatList = ref(null);
 const scrollAnchor = ref(null);
 const conversationId = ref("");
+const textareaRef = ref(null);
 let sseController = null;
 let pendingScroll = false;
 let flushTimer = null;
@@ -467,6 +469,20 @@ const copyMessage = async (content) => {
     console.error('复制失败:', err);
   }
 };
+
+const adjustTextareaHeight = () => {
+  const textarea = textareaRef.value;
+  if (textarea) {
+    textarea.style.height = 'auto';
+    textarea.style.height = `${textarea.scrollHeight}px`;
+  }
+};
+
+watch(input, () => {
+  nextTick(() => {
+    adjustTextareaHeight();
+  });
+});
 
 /**
  * 获取助手消息的展示内容，与后端 storedContent() 方法逻辑保持一致
