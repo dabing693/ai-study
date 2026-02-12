@@ -9,6 +9,7 @@
     <module>trade-agent</module>
     <module>finance-agent</module>
       <module>base-agent</module>
+      <module>newsnow4j</module>
   </modules>
   <properties>
     <maven.compiler.source>21</maven.compiler.source>
