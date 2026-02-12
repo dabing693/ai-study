@@ -152,19 +152,8 @@ public class MktNewsService {
         } else {
             String content = data.get("content").asText();
             // Try to extract title from content if it starts with 【...】 pattern
-            if (content != null && content.startsWith("【")) {
-                java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("^【([^】]*)】(.*)$");
-                java.util.regex.Matcher matcher = pattern.matcher(content);
-                if (matcher.find()) {
-                    title = matcher.group(1);
-                } else {
-                    title = content;
-                }
-            } else {
-                title = content;
-            }
+            title = titleFromContent(content, title);
         }
-
         return title;
     }
 
@@ -188,7 +177,7 @@ public class MktNewsService {
     private NewsItemDto convertToNewsItemDto(NewsItem newsItem) {
         NewsItemDto dto = new NewsItemDto();
         dto.setId(newsItem.getItemId());
-        dto.setTitle(newsItem.getTitle());
+        dto.setTitle(titleFromContent(newsItem.getContent(), dto.getTitle()));
         dto.setUrl(newsItem.getUrl());
         dto.setPubDate(newsItem.getPubDate());
 
@@ -217,5 +206,23 @@ public class MktNewsService {
             log.error("Error retrieving cached news for source: {}", source, e);
             return new ArrayList<>(); // Return empty list if database query fails
         }
+    }
+
+    private String titleFromContent(String content, String title) {
+        if (StringUtils.hasText(title)) {
+            return title;
+        }
+        if (content != null && content.startsWith("【")) {
+            java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("^【([^】]*)】(.*)$");
+            java.util.regex.Matcher matcher = pattern.matcher(content);
+            if (matcher.find()) {
+                title = matcher.group(1);
+            } else {
+                title = content;
+            }
+        } else {
+            title = content;
+        }
+        return title;
     }
 }

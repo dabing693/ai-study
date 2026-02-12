@@ -278,7 +278,6 @@ const categorySources = {
     { id: 'jin10', name: '金十数据', color: 'blue' },
     { id: 'xueqiu-hotstock', name: '雪球', color: 'blue', title: '热门股票' },
     { id: 'gelonghui', name: '格隆汇', color: 'blue', title: '事件' },
-    { id: 'fastbull-express', name: '法布财经', color: 'emerald', title: '快讯' },
     { id: 'mktnews-flash', name: 'MKTNews', color: 'indigo', title: '快讯' },
     { id: 'wallstreetcn-news', name: '华尔街见闻', color: 'blue', title: '最新' },
     { id: 'fastbull-news', name: '法布财经', color: 'emerald', title: '头条' },

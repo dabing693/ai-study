@@ -84,7 +84,7 @@ public class WallStreetCnService {
     @SuppressWarnings("unchecked")
     public List<NewsItemDto> getLatestNews() {
         try {
-            String apiUrl = "https://api-one.wallstcn.com/apiv1/content/information_flow?channel=global-channel&accept=article&limit=30";
+            String apiUrl = "https://api-one-wscn.awtmt.com/apiv1/content/information-flow?channel=global&accept=article&cursor=&action=upglide&limit=30";
 
             HttpHeaders headers = new HttpHeaders();
             headers.set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36");
