@@ -48,7 +48,6 @@
     "framer-motion": "^12.4.7",
     "h3": "^1.15.1",
     "iconv-lite": "^0.6.3",
-    "jose": "^6.0.8",
     "jotai": "^2.12.1",
     "md5": "^2.3.0",
     "ofetch": "^1.4.1",
@@ -122,11 +121,12 @@
   "resolutions": {
     "cross-spawn": ">=7.0.6",
     "dayjs": "1.11.13",
-    "nitropack": "npm:nitro-go@0.0.3",
+    "nitropack": "^2.9.0",
     "picomatch": "^4.0.2",
     "react": "^19",
     "db0": "^0.3.1",
-    "vite": "^6"
+    "vite": "^6",
+    "crossws": "^0.4.1"
   },
   "simple-git-hooks": {
     "pre-commit": "npx lint-staged"
