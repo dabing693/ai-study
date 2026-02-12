@@ -204,6 +204,7 @@
               :key="source.id"
               :source-id="source.id"
               :source-meta="source"
+              @analyze="handleAnalyzeNews"
             />
           </div>
         </div>
@@ -428,6 +429,19 @@ const closeUserMenu = () => {
 
 const logout = () => {
   authStore.logout();
+};
+
+const handleAnalyzeNews = (data) => {
+  const { title, url, prompt } = data;
+  const content = prompt ? `${title}\n${prompt}` : title;
+  input.value = content;
+  switchToChat();
+  nextTick(() => {
+    const textarea = document.querySelector('.composer__textarea');
+    if (textarea) {
+      textarea.focus();
+    }
+  });
 };
 
 const input = ref("");

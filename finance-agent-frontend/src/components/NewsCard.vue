@@ -42,6 +42,15 @@
       </div>
       <ul v-else class="news-card__list">
         <li v-for="(item, index) in items" :key="item.id" class="news-card__item">
+          <button 
+            class="news-card__ai-btn" 
+            title="AI分析"
+            @click.stop="handleAnalyze(item)"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+            </svg>
+          </button>
           <a :href="item.url" target="_blank" class="news-card__link">
             <span class="news-card__index">{{ index + 1 }}</span>
             <span class="news-card__item-title">{{ item.title }}</span>
@@ -78,6 +87,8 @@ const props = defineProps({
     required: true
   }
 });
+
+const emit = defineEmits(['analyze']);
 
 const items = ref([]);
 const loading = ref(false);
@@ -145,6 +156,29 @@ const fetchData = async () => {
     error.value = '加载失败';
   } finally {
     loading.value = false;
+  }
+};
+
+const handleAnalyze = async (item) => {
+  try {
+    const response = await fetch(`/prompt/news?source=${props.sourceId.split('-')[0]}`);
+    if (!response.ok) throw new Error('获取提示词失败');
+    const data = await response.json();
+    const prompt = data.prompt || '';
+    emit('analyze', {
+      title: item.title,
+      url: item.url,
+      prompt: prompt,
+      sourceId: props.sourceId
+    });
+  } catch (err) {
+    console.error('获取提示词失败:', err);
+    emit('analyze', {
+      title: item.title,
+      url: item.url,
+      prompt: '',
+      sourceId: props.sourceId
+    });
   }
 };
 
@@ -271,6 +305,31 @@ watch(() => props.sourceId, fetchData);
 
 .news-card__item {
   margin-bottom: 6px;
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.news-card__ai-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--theme-color);
+  opacity: 0.5;
+  transition: opacity 0.2s, transform 0.2s;
+  padding: 2px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.news-card__ai-btn:hover {
+  opacity: 1;
+  transform: scale(1.1);
+}
+
+.news-card__ai-btn svg {
+  width: 16px;
+  height: 16px;
 }
 
 .news-card__link {

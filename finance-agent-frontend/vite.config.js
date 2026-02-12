@@ -14,6 +14,10 @@ export default defineConfig({
         target: "http://localhost:9081",
         changeOrigin: true,
       },
+      "/prompt/news": {
+          target: "http://localhost:9081",
+          changeOrigin: true,
+      },
       "/news-api": {
         target: "http://localhost:9082/api",
         changeOrigin: true,
