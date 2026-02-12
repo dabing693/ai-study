@@ -3,7 +3,12 @@ package com.lyh.newsnow4j.controller;
 import com.lyh.newsnow4j.domain.dto.SourceResponse;
 import com.lyh.newsnow4j.domain.dto.NewsItemDto;
 import com.lyh.newsnow4j.service.ClsService;
+import com.lyh.newsnow4j.service.FastbullService;
+import com.lyh.newsnow4j.service.GelonghuiService;
+import com.lyh.newsnow4j.service.Jin10Service;
 import com.lyh.newsnow4j.service.MktNewsService;
+import com.lyh.newsnow4j.service.WallStreetCnService;
+import com.lyh.newsnow4j.service.XueqiuService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,6 +37,21 @@ public class NewsController {
     @Autowired
     private MktNewsService mktNewsService;
 
+    @Autowired
+    private WallStreetCnService wallStreetCnService;
+
+    @Autowired
+    private Jin10Service jin10Service;
+
+    @Autowired
+    private XueqiuService xueqiuService;
+
+    @Autowired
+    private GelonghuiService gelonghuiService;
+
+    @Autowired
+    private FastbullService fastbullService;
+
     @GetMapping("/api/s")
     public ResponseEntity<SourceResponse> getSource(@RequestParam("id") String id,
                                                     @RequestParam(required = false, defaultValue = "false") String latest) {
@@ -52,6 +72,33 @@ public class NewsController {
                 case "mktnews":
                 case "mktnews-flash":
                     items = mktNewsService.getFlashNews();
+                    break;
+                case "wallstreetcn":
+                case "wallstreetcn-quick":
+                    items = wallStreetCnService.getLiveNews();
+                    break;
+                case "wallstreetcn-hot":
+                    items = wallStreetCnService.getHotNews();
+                    break;
+                case "wallstreetcn-news":
+                    items = wallStreetCnService.getLatestNews();
+                    break;
+                case "jin10":
+                    items = jin10Service.getFlashNews();
+                    break;
+                case "xueqiu":
+                case "xueqiu-hotstock":
+                    items = xueqiuService.getHotStock();
+                    break;
+                case "gelonghui":
+                    items = gelonghuiService.getNews();
+                    break;
+                case "fastbull":
+                case "fastbull-express":
+                    items = fastbullService.getExpressNews();
+                    break;
+                case "fastbull-news":
+                    items = fastbullService.getNews();
                     break;
                 default:
                     log.warn("未支持数据源: {}", id);
