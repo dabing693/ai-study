@@ -6,22 +6,24 @@ import com.lyh.base.agent.domain.ChatResponse;
 import com.lyh.base.agent.domain.StreamEvent;
 import com.lyh.finance.interceptor.AuthInterceptor;
 import com.lyh.finance.service.ConversationService;
-import com.lyh.finance.util.JwtUtil;
 import jakarta.annotation.Resource;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
-import java.util.concurrent.CompletableFuture;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * @author lengYinHui
  * @date 2026/2/3
  */
+@ConditionalOnProperty(prefix = "react.chat.stream.use", name = "reactive", havingValue = "false")
 @RestController
 @RequestMapping("/react")
 public class ReActController {
@@ -30,9 +32,6 @@ public class ReActController {
 
     @Autowired
     private ConversationService conversationService;
-
-    @Autowired
-    private JwtUtil jwtUtil;
 
     @GetMapping("/chat")
     public ResponseEntity<ChatResponse> chat(@RequestParam("query") String query,
@@ -55,7 +54,10 @@ public class ReActController {
     @GetMapping(value = "/chat/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public ResponseEntity<SseEmitter> chatStream(@RequestParam("query") String query,
                                                  @RequestParam(value = "conversationId", required = false) String conversationId,
-                                                 @RequestHeader(value = "isNew", required = false) String isNewHeader) {
+                                                 @RequestHeader(value = "isNew", required = false) String isNewHeader,
+                                                 HttpServletResponse response) {
+        //显式设置响应头
+        response.setCharacterEncoding("UTF-8");
         boolean isNew = "true".equalsIgnoreCase(isNewHeader);
         if (conversationId == null || conversationId.isBlank()) {
             conversationId = UUID.randomUUID().toString().replace("-", "");

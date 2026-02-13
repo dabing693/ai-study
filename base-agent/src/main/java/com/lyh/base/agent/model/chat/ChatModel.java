@@ -7,6 +7,7 @@ import com.lyh.base.agent.domain.StreamEvent;
 import com.lyh.base.agent.domain.message.Message;
 import com.lyh.base.agent.model.chat.property.ChatModelProperty;
 import org.springframework.web.client.RestTemplate;
+import reactor.core.publisher.Flux;
 
 import java.util.List;
 import java.util.function.Consumer;
@@ -44,4 +45,22 @@ public abstract class ChatModel {
     public abstract StreamChatResult stream(List<Message> messages,
                                             List<FunctionTool> tools,
                                             Consumer<StreamEvent> eventConsumer);
+
+    /**
+     * 响应式流接口
+     *
+     * @param messages
+     * @param tools
+     * @return
+     */
+    public Flux<StreamEvent> streamFlux(List<Message> messages, List<FunctionTool> tools) {
+        return Flux.create(sink -> {
+            try {
+                this.stream(messages, tools, sink::next);
+                sink.complete();
+            } catch (Exception e) {
+                sink.error(e);
+            }
+        });
+    }
 }

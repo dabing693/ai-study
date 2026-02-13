@@ -1,7 +1,7 @@
 package com.lyh.finance.memory;
 
 import com.lyh.base.agent.model.embedding.EmbeddingModel;
-import com.lyh.common.util.MarkdownUtil;
+import com.lyh.base.agent.util.MarkdownUtil;
 import io.milvus.v2.client.MilvusClientV2;
 import io.milvus.v2.common.IndexParam;
 import io.milvus.v2.service.vector.request.AnnSearchReq;

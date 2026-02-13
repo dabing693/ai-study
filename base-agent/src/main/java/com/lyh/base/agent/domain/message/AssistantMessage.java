@@ -8,6 +8,7 @@ import lombok.Data;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -55,5 +56,9 @@ public class AssistantMessage extends Message {
             jsonObject.put("tool_calls", JSONArray.toJSONString(this.getToolCalls()));
         }
         return jsonObject.toJSONString();
+    }
+
+    public boolean hasToolCalls() {
+        return !CollectionUtils.isEmpty(this.getToolCalls());
     }
 }

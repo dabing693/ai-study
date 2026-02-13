@@ -12,6 +12,7 @@
         <module>finance-agent</module>
         <module>base-agent</module>
         <module>newsnow4j</module>
+        <module>finance-agent-reactive</module>
     </modules>
     <properties>
         <maven.compiler.source>21</maven.compiler.source>

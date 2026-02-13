@@ -816,6 +816,14 @@ const sendMessage = async () => {
     scrollToBottom();
 
     await parseSseStream(response, async (eventName, data) => {
+      //适配WebFlux时，eventName为全部为message的情况
+      if (eventName === "message"){
+        try {
+          const payload = JSON.parse(data);
+          eventName = payload.type;
+        } catch (err) {
+        }
+      }
       if (eventName === "session") {
         try {
           const payload = JSON.parse(data);

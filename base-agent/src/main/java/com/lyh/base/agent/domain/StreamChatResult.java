@@ -5,6 +5,7 @@ import lombok.Data;
 import org.springframework.util.CollectionUtils;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -16,13 +17,10 @@ public class StreamChatResult {
     private AssistantMessage message;
 
     public boolean hasToolCalls() {
-        return !CollectionUtils.isEmpty(getToolCalls());
+        return message != null && message.hasToolCalls();
     }
 
     public List<AssistantMessage.ToolCall> getToolCalls() {
-        if (message == null || CollectionUtils.isEmpty(message.getToolCalls())) {
-            return new ArrayList<>();
-        }
-        return message.getToolCalls();
+        return message == null ? Collections.emptyList() : message.getToolCalls();
     }
 }

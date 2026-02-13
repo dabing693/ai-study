@@ -7,7 +7,8 @@ export default defineConfig({
   server: {
     proxy: {
       "/react/chat": {
-        target: "http://localhost:9081",
+        //target: "http://localhost:9081",
+        target: "http://localhost:9083",
         changeOrigin: true,
       },
       "/api": {
