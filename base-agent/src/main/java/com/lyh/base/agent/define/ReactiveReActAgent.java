@@ -1,5 +1,6 @@
 package com.lyh.base.agent.define;
 
+import com.lyh.base.agent.context.RequestContext;
 import com.lyh.base.agent.domain.ChatResponse;
 import com.lyh.base.agent.domain.StreamChatResult;
 import com.lyh.base.agent.domain.StreamEvent;
@@ -9,12 +10,14 @@ import com.lyh.base.agent.domain.message.ToolMessage;
 import com.lyh.base.agent.memory.MemoryManager;
 import com.lyh.base.agent.model.chat.ChatModel;
 import com.lyh.base.agent.tool.ToolManager;
+import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
 import java.util.List;
 
+@Slf4j
 public class ReactiveReActAgent extends ReActAgent {
     public ReactiveReActAgent(ChatModel chatModel, MemoryManager memoryManager, ToolManager toolManager) {
         super(chatModel, memoryManager, toolManager);
@@ -27,7 +30,11 @@ public class ReactiveReActAgent extends ReActAgent {
      * @return
      */
     public Mono<ChatResponse> chatMono(String query) {
-        return Mono.fromCallable(() -> chat(query))
+        return Mono.deferContextual(context -> {
+                    RequestContext.copyUserContextFromReactive(context);
+                    return Mono.fromCallable(() -> chat(query))
+                            .doFinally(signalType -> RequestContext.clear());
+                })
                 .subscribeOn(Schedulers.boundedElastic());
     }
 
@@ -38,10 +45,13 @@ public class ReactiveReActAgent extends ReActAgent {
      * @return
      */
     public Flux<StreamEvent> chatFluxReactive(String query) {
-        return Flux.<StreamEvent>defer(() -> {
-            List<Message> messageList = sense(query);
-            return chatLoopFlux(messageList, 0);
-        }).subscribeOn(Schedulers.boundedElastic());
+        return Flux.<StreamEvent>deferContextual(context -> {
+                    RequestContext.copyUserContextFromReactive(context);
+                    List<Message> messageList = sense(query);
+                    return chatLoopFlux(messageList, 0);
+                })
+                .doFinally(signalType -> RequestContext.clear())
+                .subscribeOn(Schedulers.boundedElastic());
     }
 
     private Flux<StreamEvent> chatLoopFlux(List<Message> messageList, int loopCount) {

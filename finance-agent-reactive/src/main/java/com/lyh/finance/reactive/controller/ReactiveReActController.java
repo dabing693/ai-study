@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.util.context.Context;
 
 import java.util.UUID;
 
@@ -51,12 +52,14 @@ public class ReactiveReActController {
         // 构造起始事件
         StreamEvent sessionEvent = StreamEvent.session(finalConversationId);
 
-        // 使用响应式方法
+        // 使用响应式方法，通过 Reactor Context 传递会话信息
         return Flux.concat(
                 Flux.just(sessionEvent),
                 reactiveReActAgent.chatFluxReactive(query)
-                        .doFirst(() -> RequestContext.setSession(finalConversationId, finalIsNew))
-                        .doFinally(signalType -> RequestContext.clear())
+                        .contextWrite(Context.of(
+                                RequestContext.USER_CONTEXT_KEY,
+                                RequestContext.UserContext.of(conversationId, isNew)
+                        ))
         ).concatWith(Flux.just(StreamEvent.done()));
     }
 
@@ -73,7 +76,9 @@ public class ReactiveReActController {
                 .map(response -> ResponseEntity.ok()
                         .header("X-Session-Id", finalConversationId)
                         .body(response))
-                .doFirst(() -> RequestContext.setSession(finalConversationId, isNew))
-                .doFinally(signalType -> RequestContext.clear());
+                .contextWrite(Context.of(
+                        RequestContext.USER_CONTEXT_KEY,
+                        RequestContext.UserContext.of(finalConversationId, isNew)
+                ));
     }
 }
