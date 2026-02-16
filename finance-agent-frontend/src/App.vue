@@ -1,7 +1,6 @@
 <template>
   <div class="app">
     <aside class="sidebar">
-      <div class="sidebar__logo">◎</div>
       <router-link to="/" class="sidebar__icon" :class="{ active: $route.name === 'chat' || $route.name === 'conversation' }" title="新对话" @click="handleNewChat">
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <path
@@ -10,24 +9,6 @@
           <path d="M17 11h2v6a2 2 0 0 1-2 2h-6v-2h6z" />
           <path d="M11 9h2v4h-2z" />
           <path d="M9 11h4v2H9z" />
-        </svg>
-      </router-link>
-      <button class="sidebar__icon" type="button" title="搜索">
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path
-            d="M10.5 3a7.5 7.5 0 1 0 4.74 13.34l3.7 3.7 1.41-1.41-3.7-3.7A7.5 7.5 0 0 0 10.5 3zm0 2a5.5 5.5 0 1 1 0 11 5.5 5.5 0 0 1 0-11z"
-          />
-        </svg>
-      </button>
-      <router-link to="/news" class="sidebar__icon" :class="{ active: $route.name === 'news' }" title="NewsNow">
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/>
-          <path d="M14 17H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/>
-        </svg>
-      </router-link>
-      <router-link to="/market" class="sidebar__icon" :class="{ active: $route.name === 'market' }" title="市场行情">
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M3.5 18.49l6-6.01 4 4L22 6.92l-1.41-1.41-7.09 7.97-4-4L2 16.99l1.5 1.5z"/>
         </svg>
       </router-link>
       <button
@@ -44,6 +25,17 @@
           <path d="M11 13h5v2h-5z" />
         </svg>
       </button>
+      <router-link to="/news" class="sidebar__icon" :class="{ active: $route.name === 'news' }" title="NewsNow">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/>
+          <path d="M14 17H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/>
+        </svg>
+      </router-link>
+      <router-link to="/market" class="sidebar__icon" :class="{ active: $route.name === 'market' }" title="市场行情">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M3.5 18.49l6-6.01 4 4L22 6.92l-1.41-1.41-7.09 7.97-4-4L2 16.99l1.5 1.5z"/>
+        </svg>
+      </router-link>
       <div class="sidebar__spacer"></div>
       <button
         class="sidebar__avatar"
@@ -75,7 +67,6 @@
           </div>
         </div>
         <div class="topbar__right">
-          <button class="chip" type="button">获取 Plus</button>
           <button class="icon-btn" type="button" title="分享">
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <path
@@ -119,13 +110,14 @@
 
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
-import { useRoute } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import AuthModal from "./components/AuthModal.vue";
 import UserMenu from "./components/UserMenu.vue";
 import ConversationHistory from "./components/ConversationHistory.vue";
 import { useAuthStore } from "./stores/auth.js";
 
 const route = useRoute();
+const router = useRouter();
 const authStore = useAuthStore();
 const showAuthModal = ref(false);
 const showUserMenu = ref(false);
@@ -147,7 +139,7 @@ const topbarTitle = computed(() => {
   if (route.name === 'news') {
     return newsCategories.find(c => c.id === currentCategory.value)?.name || 'NewsNow';
   }
-  return 'ChatGPT';
+  return 'FinAgent';
 });
 
 const toggleCategoryMenu = () => {
@@ -209,10 +201,8 @@ const closeHistory = () => {
 };
 
 const loadConversation = async (conv) => {
-  if (currentView.value && currentView.value.loadConversation) {
-    await currentView.value.loadConversation(conv);
-  }
   closeHistory();
+  router.push({ name: 'conversation', params: { id: conv.conversationId } });
 };
 
 const handleAvatarClick = () => {

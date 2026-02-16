@@ -129,8 +129,8 @@ const streamingActive = ref(false);
 
 const emit = defineEmits(['analyzeNews']);
 
-const loadHistoryMessages = async (forceReload = false) => {
-  const convId = route.params.id;
+const loadHistoryMessages = async (forceReload = false, convIdParam = null) => {
+  const convId = convIdParam || route.params.id;
   if (!convId) return;
   
   if (!authStore.state.isLoggedIn) {
@@ -164,8 +164,14 @@ watch(() => authStore.state.isLoggedIn, (isLoggedIn) => {
 
 watch(() => route.params.id, (newId, oldId) => {
   if (newId && newId !== oldId) {
+    if (loading.value) {
+      return;
+    }
     messages.value = [];
-    loadHistoryMessages(true);
+    loadHistoryMessages(true, newId);
+  } else if (!newId && oldId) {
+    messages.value = [];
+    conversationId.value = '';
   }
 });
 
@@ -620,23 +626,8 @@ const newConversation = () => {
 };
 
 const loadConversation = async (conv) => {
-  conversationId.value = conv.conversationId;
   messages.value = [];
   router.push({ name: 'conversation', params: { id: conv.conversationId } });
-
-  if (authStore.state.isLoggedIn) {
-    try {
-      const response = await authStore.fetchWithAuth(
-        `/api/conversation/${conv.conversationId}/messages`
-      );
-      if (response && response.ok) {
-        const historyMessages = await response.json();
-        messages.value = parseHistoryMessages(historyMessages);
-      }
-    } catch (err) {
-      console.error('加载历史消息失败:', err);
-    }
-  }
 };
 
 const setAnalyzeContent = (content) => {
