@@ -19,9 +19,10 @@ public class ToolConfig {
             AccountTool accountTool,
             StockTool stockTool,
             FundTool fundTool,
-            SearchTool searchTool
+            SearchTool searchTool,
+            AkShareTool akShareTool
     ) {
-        return new ToolBuilder(dateTimeTool, accountTool, stockTool, fundTool, searchTool);
+        return new ToolBuilder(dateTimeTool, accountTool, stockTool, fundTool, searchTool, akShareTool);
     }
 
     @Bean
