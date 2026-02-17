@@ -17,7 +17,7 @@ public class MultiAgentConfig {
 
     @Bean
     public ExecutorService executorService() {
-        return Executors.newFixedThreadPool(2);
+        return Executors.newFixedThreadPool(1);
     }
 
     @Bean
