@@ -67,34 +67,58 @@
 
     <div class="composer">
       <div class="composer__input">
-        <span class="composer__plus">＋</span>
         <textarea
           ref="textareaRef"
           v-model="input"
           class="composer__textarea"
           placeholder="有问题，尽管问"
-          rows="1"
+          rows="3"
           @keydown.enter.exact.prevent="sendMessage"
           @keydown.enter.shift.exact.stop
         ></textarea>
-        <button class="icon-btn" type="button" title="语音">
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path
-              d="M12 3a3 3 0 0 1 3 3v6a3 3 0 0 1-6 0V6a3 3 0 0 1 3-3zm-5 9h2a5 5 0 0 0 10 0h2a7 7 0 0 1-6 6.9V21h-2v-2.1A7 7 0 0 1 7 12z"
-            />
-          </svg>
-        </button>
-        <button
-          class="send-btn"
-          type="button"
-          :disabled="loading || !input.trim()"
-          @click="sendMessage"
-          title="发送"
-        >
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M3 12 21 4l-4 16-5-6-9-2z" />
-          </svg>
-        </button>
+        <div class="composer__buttons">
+          <div class="composer__buttons-left">
+            <span class="composer__plus">＋</span>
+            <div class="agent-toggle">
+              <button
+                class="agent-toggle__btn"
+                :class="{ active: agentMode === 'react' }"
+                type="button"
+                @click="agentMode = 'react'"
+              >
+                React Agent
+              </button>
+              <button
+                class="agent-toggle__btn"
+                :class="{ active: agentMode === 'multi' }"
+                type="button"
+                @click="agentMode = 'multi'"
+              >
+                Multi Agent
+              </button>
+            </div>
+          </div>
+          <div class="composer__right-buttons">
+            <button class="icon-btn" type="button" title="语音">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path
+                  d="M12 3a3 3 0 0 1 3 3v6a3 3 0 0 1-6 0V6a3 3 0 0 1 3-3zm-5 9h2a5 5 0 0 0 10 0h2a7 7 0 0 1-6 6.9V21h-2v-2.1A7 7 0 0 1 7 12z"
+                />
+              </svg>
+            </button>
+            <button
+              class="send-btn"
+              type="button"
+              :disabled="loading || !input.trim()"
+              @click="sendMessage"
+              title="发送"
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M3 12 21 4l-4 16-5-6-9-2z" />
+              </svg>
+            </button>
+          </div>
+        </div>
       </div>
       <div class="composer__hint" v-if="error">{{ error }}</div>
     </div>
@@ -119,6 +143,7 @@ const chatList = ref(null);
 const scrollAnchor = ref(null);
 const conversationId = ref("");
 const textareaRef = ref(null);
+const agentMode = ref("react");
 let sseController = null;
 let pendingScroll = false;
 let flushTimer = null;
@@ -187,8 +212,12 @@ const copyMessage = async (content) => {
 const adjustTextareaHeight = () => {
   const textarea = textareaRef.value;
   if (textarea) {
-    textarea.style.height = 'auto';
-    textarea.style.height = `${textarea.scrollHeight}px`;
+    if (!input.value || input.value.trim() === '') {
+      textarea.style.height = '';
+    } else {
+      textarea.style.height = 'auto';
+      textarea.style.height = `${textarea.scrollHeight}px`;
+    }
   }
 };
 
@@ -473,7 +502,8 @@ const sendMessage = async () => {
     router.replace({ name: 'conversation', params: { id: conversationId.value } });
   }
 
-  const url = new URL("/react/chat/stream", window.location.origin);
+  let endpoint = agentMode.value === 'react' ? "/react/chat/stream" : "/multi-agent/consultation/stream";
+  const url = new URL(endpoint, window.location.origin);
   url.searchParams.set("query", text);
   if (conversationId.value) {
     url.searchParams.set("conversationId", conversationId.value);
@@ -500,109 +530,175 @@ const sendMessage = async () => {
     scrollToBottom();
 
     await parseSseStream(response, async (eventName, data) => {
-      if (eventName === "message"){
-        try {
-          const payload = JSON.parse(data);
-          eventName = payload.type;
-        } catch (err) {
-        }
-      }
-      if (eventName === "session") {
-        try {
-          const payload = JSON.parse(data);
-          if (payload.conversationId && !conversationId.value) {
-            conversationId.value = payload.conversationId;
-          }
-        } catch (err) {
+      if (agentMode.value === 'multi') {
+        if (eventName === "session") {
+          try {
+            if (!conversationId.value && data) {
+              conversationId.value = data;
+            }
+          } catch (err) {}
           return;
         }
-        return;
-      }
-      if (eventName === "assistant_start") {
-        try {
-          const payload = JSON.parse(data);
-          const index = payload.assistantIndex || 0;
-          if (index > 0) {
-            createNewAssistantMessage(index);
-          }
-        } catch (err) {
-          return;
-        }
-        return;
-      }
-      if (eventName === "delta") {
-        try {
-          const payload = JSON.parse(data);
-          if (payload.content && currentAssistantMessage) {
-            currentAssistantMessage.content += payload.content;
-            scheduleFlush(currentAssistantMessage);
-          }
-        } catch (err) {
-          return;
-        }
-        return;
-      }
-      if (eventName === "reasoning_delta") {
-        try {
-          const payload = JSON.parse(data);
-          if (payload.reasoningContent && currentAssistantMessage) {
-            currentAssistantMessage.reasoningContent = payload.reasoningContent;
-            await nextTick();
-            scrollToBottom();
-          }
-        } catch (err) {
-          return;
-        }
-        return;
-      }
-      if (eventName === "tool_call") {
-        try {
-          const payload = JSON.parse(data);
-          if (currentAssistantMessage) {
-            const cur_tool_calls = JSON.parse(payload.toolCalls)
-            currentAssistantMessage.toolCalls.push(...cur_tool_calls);
-            await nextTick();
-            scrollToBottom();
-          }
-        } catch (err) {
-          return;
-        }
-        return;
-      }
-      if (eventName === "tool_result") {
-        try {
-          const payload = JSON.parse(data);
+        if (eventName === "start") {
           messages.value.push({
-            role: "tool",
-            roleLabel: "Tool Result",
-            content: payload.content || "",
+            role: "assistant",
+            roleLabel: "系统",
+            content: "多Agent会诊开始...",
+            reasoningContent: "",
+            toolCalls: [],
+            streaming: false,
           });
           await nextTick();
           scrollToBottom();
-        } catch (err) {
           return;
         }
-        return;
-      }
-      if (eventName === "done") {
-        await finalizeStreamingState(currentAssistantMessage);
-        if (sseController) {
-          sseController.abort();
-          sseController = null;
+        if (eventName === "agent_result") {
+          try {
+            const agentResult = JSON.parse(data);
+            const agentMessage = {
+              role: "assistant",
+              roleLabel: agentResult.agentName,
+              content: agentResult.status === 'success' ? agentResult.content : `执行失败: ${agentResult.errorMessage}`,
+              reasoningContent: "",
+              toolCalls: [],
+              streaming: false,
+            };
+            messages.value.push(agentMessage);
+            await nextTick();
+            scrollToBottom();
+          } catch (err) {
+            console.error('解析agent_result失败:', err);
+          }
+          return;
         }
-        return;
-      }
-      if (eventName === "error") {
-        try {
-          const payload = JSON.parse(data);
-          error.value = payload.content || "Request failed. Please check the backend service.";
-        } catch (err) {
-          error.value = "Request failed. Please check the backend service.";
+        if (eventName === "content") {
+          currentAssistantMessage.content = data;
+          await nextTick();
+          scrollToBottom();
+          return;
         }
-        await finalizeStreamingState(currentAssistantMessage);
-        if (sseController) {
-          sseController.abort();
-          sseController = null;
+        if (eventName === "done") {
+          await finalizeStreamingState(currentAssistantMessage);
+          if (sseController) {
+            sseController.abort();
+            sseController = null;
+          }
+          return;
+        }
+        if (eventName === "error") {
+          error.value = data || "Request failed. Please check the backend service.";
+          await finalizeStreamingState(currentAssistantMessage);
+          if (sseController) {
+            sseController.abort();
+            sseController = null;
+          }
+          return;
+        }
+      } else {
+        if (eventName === "message"){
+          try {
+            const payload = JSON.parse(data);
+            eventName = payload.type;
+          } catch (err) {
+          }
+        }
+        if (eventName === "session") {
+          try {
+            const payload = JSON.parse(data);
+            if (payload.conversationId && !conversationId.value) {
+              conversationId.value = payload.conversationId;
+            }
+          } catch (err) {
+            return;
+          }
+          return;
+        }
+        if (eventName === "assistant_start") {
+          try {
+            const payload = JSON.parse(data);
+            const index = payload.assistantIndex || 0;
+            if (index > 0) {
+              createNewAssistantMessage(index);
+            }
+          } catch (err) {
+            return;
+          }
+          return;
+        }
+        if (eventName === "delta") {
+          try {
+            const payload = JSON.parse(data);
+            if (payload.content && currentAssistantMessage) {
+              currentAssistantMessage.content += payload.content;
+              scheduleFlush(currentAssistantMessage);
+            }
+          } catch (err) {
+            return;
+          }
+          return;
+        }
+        if (eventName === "reasoning_delta") {
+          try {
+            const payload = JSON.parse(data);
+            if (payload.reasoningContent && currentAssistantMessage) {
+              currentAssistantMessage.reasoningContent = payload.reasoningContent;
+              await nextTick();
+              scrollToBottom();
+            }
+          } catch (err) {
+            return;
+          }
+          return;
+        }
+        if (eventName === "tool_call") {
+          try {
+            const payload = JSON.parse(data);
+            if (currentAssistantMessage) {
+              const cur_tool_calls = JSON.parse(payload.toolCalls)
+              currentAssistantMessage.toolCalls.push(...cur_tool_calls);
+              await nextTick();
+              scrollToBottom();
+            }
+          } catch (err) {
+            return;
+          }
+          return;
+        }
+        if (eventName === "tool_result") {
+          try {
+            const payload = JSON.parse(data);
+            messages.value.push({
+              role: "tool",
+              roleLabel: "Tool Result",
+              content: payload.content || "",
+            });
+            await nextTick();
+            scrollToBottom();
+          } catch (err) {
+            return;
+          }
+          return;
+        }
+        if (eventName === "done") {
+          await finalizeStreamingState(currentAssistantMessage);
+          if (sseController) {
+            sseController.abort();
+            sseController = null;
+          }
+          return;
+        }
+        if (eventName === "error") {
+          try {
+            const payload = JSON.parse(data);
+            error.value = payload.content || "Request failed. Please check the backend service.";
+          } catch (err) {
+            error.value = "Request failed. Please check the backend service.";
+          }
+          await finalizeStreamingState(currentAssistantMessage);
+          if (sseController) {
+            sseController.abort();
+            sseController = null;
+          }
         }
       }
     });
