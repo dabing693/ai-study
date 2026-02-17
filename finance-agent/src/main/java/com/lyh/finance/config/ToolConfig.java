@@ -32,4 +32,43 @@ public class ToolConfig {
     ) {
         return new ToolBuilder(dateTimeTool, accountTool);
     }
+
+    @Bean
+    public ToolBuilder technicalAnalysisTools(
+            DateTimeTool dateTimeTool,
+            AkShareTool akShareTool
+    ) {
+        return new ToolBuilder(dateTimeTool, akShareTool);
+    }
+
+    @Bean
+    public ToolBuilder fundamentalAnalysisTools(
+            DateTimeTool dateTimeTool,
+            AkShareTool akShareTool
+    ) {
+        return new ToolBuilder(dateTimeTool, akShareTool);
+    }
+
+    @Bean
+    public ToolBuilder marketSentimentTools(
+            DateTimeTool dateTimeTool,
+            SearchTool searchTool,
+            AkShareTool akShareTool
+    ) {
+        return new ToolBuilder(dateTimeTool, searchTool, akShareTool);
+    }
+
+    @Bean
+    public ToolBuilder riskAssessmentTools(
+            DateTimeTool dateTimeTool
+    ) {
+        return new ToolBuilder(dateTimeTool);
+    }
+
+    @Bean
+    public ToolBuilder summaryReportTools(
+            DateTimeTool dateTimeTool
+    ) {
+        return new ToolBuilder(dateTimeTool);
+    }
 }

@@ -27,7 +27,7 @@ import java.util.concurrent.CompletableFuture;
 @RestController
 @RequestMapping("/react")
 public class ReActController {
-    @Resource
+    @Resource(name = "financeExpertAgent")
     private ReActAgent reActAgent;
 
     @Autowired

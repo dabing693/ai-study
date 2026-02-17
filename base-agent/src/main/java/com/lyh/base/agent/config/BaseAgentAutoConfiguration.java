@@ -14,7 +14,8 @@ import org.springframework.context.annotation.Import;
         MilvusConfig.class,
         ModelConfig.class,
         RestTemplateConfig.class,
-        ThreadPoolConfig.class
+        ThreadPoolConfig.class,
+        MultiAgentConfig.class
 })
 public class BaseAgentAutoConfiguration {
 }

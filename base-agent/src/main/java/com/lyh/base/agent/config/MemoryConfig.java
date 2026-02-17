@@ -8,6 +8,7 @@ import com.lyh.base.agent.memory.repository.MysqlMemoryRepository;
 import com.lyh.base.agent.memory.repository.RamMemoryRepository;
 import com.lyh.base.agent.model.embedding.EmbeddingModel;
 import io.milvus.v2.client.MilvusClientV2;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 
@@ -19,9 +20,9 @@ public class MemoryConfig {
     public MemoryManager memoryManager(MemoryProperty memoryProperty,
                                        MysqlMemoryRepository mysqlMemoryRepository,
                                        MilvusMemoryRepository milvusMemoryRepository,
-                                       ExecutorService milvusThreadPoo
+                                       @Qualifier("milvusThreadPool") ExecutorService milvusThreadPool
     ) {
-        return new MemoryManager(memoryProperty, mysqlMemoryRepository, milvusMemoryRepository, milvusThreadPoo);
+        return new MemoryManager(memoryProperty, mysqlMemoryRepository, milvusMemoryRepository, milvusThreadPool);
     }
 
     @Bean

@@ -1,6 +1,7 @@
 package com.lyh.finance.tools;
 
 import com.lyh.base.agent.annotation.Tool;
+import com.lyh.base.agent.annotation.ToolParam;
 import com.lyh.base.agent.util.MarkdownUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.ParameterizedTypeReference;
@@ -11,7 +12,6 @@ import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -113,5 +113,142 @@ public class AkShareTool {
             table[i + 1] = new Object[]{displayDate, item.get("代码"), item.get("名称"), item.get("上榜原因"), item.get("买入额"), item.get("卖出额"), item.get("净买入额"), item.get("换手率")};
         }
         return table;
+    }
+
+    @Tool(description = "查询股票历史K线数据（日线），用于技术分析")
+    public String getStockDailyKline(
+            @ToolParam(description = "股票代码，如：600519") String symbol,
+            @ToolParam(description = "开始日期，格式：yyyyMMdd，如：20250101", required = false) String startDate,
+            @ToolParam(description = "结束日期，格式：yyyyMMdd，如：20251231", required = false) String endDate) {
+        return MarkdownUtil.arrayToMarkdownTable(getStockDailyKlineRaw(symbol, startDate, endDate));
+    }
+
+    public Object[][] getStockDailyKlineRaw(String symbol, String startDate, String endDate) {
+        String url = BASE_URL + "stock_zh_a_hist?symbol=" + symbol;
+        if (startDate != null && !startDate.isEmpty()) {
+            url += "&start_date=" + startDate;
+        }
+        if (endDate != null && !endDate.isEmpty()) {
+            url += "&end_date=" + endDate;
+        }
+        url += "&period=daily&adjust=qfq";
+        try {
+            ResponseEntity<List<Map<String, Object>>> response = restTemplate.exchange(
+                    url, HttpMethod.GET, null, new ParameterizedTypeReference<List<Map<String, Object>>>() {}
+            );
+            List<Map<String, Object>> dataList = response.getBody();
+            if (dataList == null || dataList.isEmpty()) return new Object[][]{{"状态", "暂无K线数据"}};
+
+            int limit = Math.min(dataList.size(), 60);
+            Object[][] table = new Object[limit + 1][11];
+            table[0] = new Object[]{"日期", "开盘", "收盘", "最高", "最低", "成交量", "成交额", "振幅(%)", "涨跌幅(%)", "涨跌额", "换手率(%)"};
+            for (int i = 0; i < limit; i++) {
+                Map<String, Object> item = dataList.get(dataList.size() - limit + i);
+                table[i + 1] = new Object[]{
+                        item.get("日期"), item.get("开盘"), item.get("收盘"), item.get("最高"), item.get("最低"),
+                        item.get("成交量"), item.get("成交额"), item.get("振幅"), item.get("涨跌幅"), item.get("涨跌额"), item.get("换手率")
+                };
+            }
+            return table;
+        } catch (Exception e) { return new Object[][]{{"错误", e.getMessage()}}; }
+    }
+
+    @Tool(description = "查询股票基本面信息，包括市盈率、市净率、ROE等财务指标")
+    public String getStockFundamentals(
+            @ToolParam(description = "股票代码，如：600519") String symbol) {
+        return MarkdownUtil.arrayToMarkdownTable(getStockFundamentalsRaw(symbol));
+    }
+
+    public Object[][] getStockFundamentalsRaw(String symbol) {
+        try {
+            String url1 = BASE_URL + "stock_individual_info_em?symbol=" + symbol;
+            ResponseEntity<List<Map<String, Object>>> response1 = restTemplate.exchange(
+                    url1, HttpMethod.GET, null, new ParameterizedTypeReference<List<Map<String, Object>>>() {}
+            );
+            List<Map<String, Object>> infoList = response1.getBody();
+
+            Object[][] table = new Object[Math.min(20, (infoList != null ? infoList.size() : 0) + 1)][2];
+            table[0] = new Object[]{"项目", "数值"};
+            int idx = 1;
+            if (infoList != null) {
+                for (Map<String, Object> item : infoList) {
+                    if (idx >= 20) break;
+                    table[idx++] = new Object[]{item.get("item"), item.get("value")};
+                }
+            }
+            return table;
+        } catch (Exception e) { return new Object[][]{{"错误", e.getMessage()}}; }
+    }
+
+    @Tool(description = "查询股票财务报表数据（利润表、资产负债表等）")
+    public String getStockFinancialReport(
+            @ToolParam(description = "股票代码，如：600519") String symbol,
+            @ToolParam(description = "报表类型：income-利润表，balance-资产负债表，cash-现金流量表", required = false) String reportType) {
+        String type = (reportType == null || reportType.isEmpty()) ? "income" : reportType;
+        return MarkdownUtil.arrayToMarkdownTable(getStockFinancialReportRaw(symbol, type));
+    }
+
+    public Object[][] getStockFinancialReportRaw(String symbol, String reportType) {
+        String url;
+        switch (reportType) {
+            case "balance":
+                url = BASE_URL + "stock_balance_sheet_by_company_em?symbol=" + symbol;
+                break;
+            case "cash":
+                url = BASE_URL + "stock_cash_flow_sheet_by_company_em?symbol=" + symbol;
+                break;
+            default:
+                url = BASE_URL + "stock_profit_sheet_by_company_em?symbol=" + symbol;
+        }
+        try {
+            ResponseEntity<List<Map<String, Object>>> response = restTemplate.exchange(
+                    url, HttpMethod.GET, null, new ParameterizedTypeReference<List<Map<String, Object>>>() {}
+            );
+            List<Map<String, Object>> dataList = response.getBody();
+            if (dataList == null || dataList.isEmpty()) return new Object[][]{{"状态", "暂无财务报表数据"}};
+
+            int limit = Math.min(dataList.size(), 5);
+            if (dataList.get(0).keySet().size() > 0) {
+                List<String> keys = dataList.get(0).keySet().stream().limit(10).toList();
+                Object[][] table = new Object[limit + 1][keys.size()];
+                table[0] = keys.toArray(new String[0]);
+                for (int i = 0; i < limit; i++) {
+                    Map<String, Object> item = dataList.get(i);
+                    Object[] row = new Object[keys.size()];
+                    for (int j = 0; j < keys.size(); j++) {
+                        row[j] = item.get(keys.get(j));
+                    }
+                    table[i + 1] = row;
+                }
+                return table;
+            }
+            return new Object[][]{{"状态", "数据格式异常"}};
+        } catch (Exception e) { return new Object[][]{{"错误", e.getMessage()}}; }
+    }
+
+    @Tool(description = "查询股票估值指标，包括PE、PB、PS等")
+    public String getStockValuation(
+            @ToolParam(description = "股票代码，如：600519") String symbol) {
+        return MarkdownUtil.arrayToMarkdownTable(getStockValuationRaw(symbol));
+    }
+
+    public Object[][] getStockValuationRaw(String symbol) {
+        try {
+            String url = BASE_URL + "stock_a_ttm_lyr?symbol=" + symbol;
+            ResponseEntity<List<Map<String, Object>>> response = restTemplate.exchange(
+                    url, HttpMethod.GET, null, new ParameterizedTypeReference<List<Map<String, Object>>>() {}
+            );
+            List<Map<String, Object>> dataList = response.getBody();
+            if (dataList == null || dataList.isEmpty()) return new Object[][]{{"状态", "暂无估值数据"}};
+
+            int limit = Math.min(dataList.size(), 30);
+            Object[][] table = new Object[limit + 1][4];
+            table[0] = new Object[]{"日期", "PETTM", "PBMRQ", "PS"};
+            for (int i = 0; i < limit; i++) {
+                Map<String, Object> item = dataList.get(dataList.size() - limit + i);
+                table[i + 1] = new Object[]{item.get("date"), item.get("PETTM"), item.get("PBMRQ"), item.get("ps")};
+            }
+            return table;
+        } catch (Exception e) { return new Object[][]{{"错误", e.getMessage()}}; }
     }
 }
