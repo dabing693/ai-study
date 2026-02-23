@@ -69,15 +69,17 @@ public class AgentConfig {
 
     @Bean
     public RiskAssessmentAgent riskAssessmentAgent(ChatModel chatModel,
+                                                   MemoryManager memoryManager,
                                                    ToolBuilder riskAssessmentTools) {
         ToolManager toolManager = riskAssessmentTools.buildToolManager();
-        return new RiskAssessmentAgent(chatModel, toolManager);
+        return new RiskAssessmentAgent(chatModel, memoryManager, toolManager);
     }
 
     @Bean
     public SummaryReportAgent summaryReportAgent(ChatModel chatModel,
+                                                 MemoryManager memoryManager,
                                                  ToolBuilder summaryReportTools) {
         ToolManager toolManager = summaryReportTools.buildToolManager();
-        return new SummaryReportAgent(chatModel, toolManager);
+        return new SummaryReportAgent(chatModel, memoryManager, toolManager);
     }
 }
