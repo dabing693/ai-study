@@ -1,7 +1,7 @@
 <template>
   <div class="app">
     <aside class="sidebar">
-      <router-link to="/" class="sidebar__icon" :class="{ active: $route.name === 'chat' || $route.name === 'conversation' }" title="新对话" @click="handleNewChat">
+      <router-link to="/react-chat" class="sidebar__icon" :class="{ active: $route.name === 'react-chat' || $route.name === 'conversation' || $route.name === 'multi-chat' || $route.name === 'multi-conversation' }" title="新聊天" @click="handleNewChat">
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <path
             d="M5 5h8a2 2 0 0 1 2 2v6H9a2 2 0 0 0-2 2v4H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z"

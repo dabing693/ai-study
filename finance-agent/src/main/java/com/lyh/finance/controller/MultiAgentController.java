@@ -2,11 +2,13 @@ package com.lyh.finance.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lyh.base.agent.context.RequestContext;
+import com.lyh.base.agent.orchestrator.AgentEvent;
 import com.lyh.base.agent.orchestrator.AgentRegistry;
 import com.lyh.base.agent.orchestrator.AgentResult;
 import com.lyh.base.agent.orchestrator.MultiAgentOrchestrator;
 import com.lyh.finance.agents.*;
 import com.lyh.finance.interceptor.AuthInterceptor;
+import com.lyh.finance.service.AgentConversationService;
 import com.lyh.finance.service.ConversationService;
 import jakarta.annotation.PostConstruct;
 import jakarta.servlet.http.HttpServletResponse;
@@ -19,14 +21,12 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
-/**
- * 多 Agent 会诊 Controller
- */
 @RequiredArgsConstructor
 @RestController
 @RequestMapping("/multi-agent")
@@ -37,6 +37,9 @@ public class MultiAgentController {
 
     @Autowired
     private ConversationService conversationService;
+
+    @Autowired
+    private AgentConversationService agentConversationService;
 
     private final ObjectMapper objectMapper;
 
@@ -89,7 +92,7 @@ public class MultiAgentController {
 
         if (finalIsNew && userId != null) {
             String title = query.length() > 30 ? query.substring(0, 30) + "..." : query;
-            conversationService.createOrUpdateConversation(finalConversationId, userId, title);
+            conversationService.createOrUpdateConversation(finalConversationId, userId, title, "multi");
         }
 
         SseEmitter emitter = new SseEmitter(0L);
@@ -100,17 +103,37 @@ public class MultiAgentController {
                 sendEvent(emitter, "session", finalConversationId);
                 sendEvent(emitter, "start", "多Agent会诊开始");
 
+                MultiAgentOrchestrator.AgentConversationMappingService mappingService =
+                        new MultiAgentOrchestrator.AgentConversationMappingService() {
+                            @Override
+                            public void createMapping(String parentConversationId, String agentName,
+                                                      String agentConversationId, String description) {
+                                agentConversationService.createMapping(
+                                        parentConversationId, agentName, agentConversationId, description);
+                            }
+
+                            @Override
+                            public void updateAgentStatus(String parentConversationId, String agentName,
+                                                          String status, LocalDateTime startTime, LocalDateTime endTime) {
+                                agentConversationService.updateAgentStatus(
+                                        parentConversationId, agentName, status, startTime, endTime);
+                            }
+                        };
+
                 String finalResult = multiAgentOrchestrator.executeConsultation(
+                        finalConversationId,
                         query,
                         PARALLEL_AGENTS,
                         SEQUENTIAL_AGENTS,
-                        agentResult -> {
+                        agentEvent -> {
                             try {
-                                sendEvent(emitter, "agent_result", objectMapper.writeValueAsString(agentResult));
+                                String eventData = objectMapper.writeValueAsString(agentEvent);
+                                sendEvent(emitter, agentEvent.getEventName(), eventData);
                             } catch (Exception e) {
                                 e.printStackTrace();
                             }
-                        }
+                        },
+                        mappingService
                 );
 
                 sendEvent(emitter, "content", finalResult);
@@ -127,6 +150,21 @@ public class MultiAgentController {
         return ResponseEntity.ok().body(emitter);
     }
 
+    @GetMapping("/agents/{parentConversationId}")
+    public ResponseEntity<List<AgentMappingDTO>> getAgentMappings(
+            @PathVariable String parentConversationId) {
+        return ResponseEntity.ok(
+                agentConversationService.getAgentMappings(parentConversationId).stream()
+                        .map(m -> new AgentMappingDTO(
+                                m.getAgentName(),
+                                m.getAgentConversationId(),
+                                m.getAgentDescription(),
+                                m.getStatus()
+                        ))
+                        .toList()
+        );
+    }
+
     private void safeSend(SseEmitter emitter, String eventName, String data) {
         try {
             sendEvent(emitter, eventName, data);
@@ -137,5 +175,14 @@ public class MultiAgentController {
 
     private void sendEvent(SseEmitter emitter, String eventName, String data) throws IOException {
         emitter.send(SseEmitter.event().name(eventName).data(data));
+    }
+
+    @lombok.Data
+    @lombok.AllArgsConstructor
+    public static class AgentMappingDTO {
+        private String agentName;
+        private String agentConversationId;
+        private String agentDescription;
+        private String status;
     }
 }

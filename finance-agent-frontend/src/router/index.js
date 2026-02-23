@@ -1,11 +1,21 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import ChatView from '../views/ChatView.vue'
+import ReactChatView from '../views/ReactChatView.vue'
+import MultiChatView from '../views/MultiChatView.vue'
 
 const routes = [
   {
     path: '/',
-    name: 'chat',
-    component: ChatView
+    redirect: '/react-chat'
+  },
+  {
+    path: '/react-chat',
+    name: 'react-chat',
+    component: ReactChatView
+  },
+  {
+    path: '/multi-chat',
+    name: 'multi-chat',
+    component: MultiChatView
   },
   {
     path: '/news',
@@ -20,7 +30,12 @@ const routes = [
   {
     path: '/conversation/:id',
     name: 'conversation',
-    component: ChatView
+    component: ReactChatView
+  },
+  {
+    path: '/multi-conversation/:id',
+    name: 'multi-conversation',
+    component: MultiChatView
   }
 ]
 

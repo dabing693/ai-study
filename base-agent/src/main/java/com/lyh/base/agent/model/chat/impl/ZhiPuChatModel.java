@@ -108,10 +108,12 @@ public class ZhiPuChatModel extends ChatModel {
             message.setReasoningContent(reasoningBuilder.toString());
         }
         if (StringUtils.hasLength(toolCallsBuilder)) {
-            //推送模型输出的工具调用参数
-            List<AssistantMessage.ToolCall> toolCalls = JSONArray.parseArray(toolCallsBuilder.toString(), AssistantMessage.ToolCall.class);
-            eventConsumer.accept(StreamEvent.toolCalls(toolCalls));
-            message.setToolCalls(toolCalls);
+            String toolCallsStr = toolCallsBuilder.toString();
+            List<AssistantMessage.ToolCall> toolCalls = parseToolCalls(toolCallsStr);
+            if (!toolCalls.isEmpty()) {
+                eventConsumer.accept(StreamEvent.toolCalls(toolCalls));
+                message.setToolCalls(toolCalls);
+            }
         }
         StreamChatResult result = new StreamChatResult();
         result.setMessage(message);
@@ -178,6 +180,24 @@ public class ZhiPuChatModel extends ChatModel {
         if (toolCalls != null && !toolCalls.isEmpty()) {
             toolCallsBuilder.append(toolCalls);
         }
+    }
+
+    private List<AssistantMessage.ToolCall> parseToolCalls(String toolCallsStr) {
+        List<AssistantMessage.ToolCall> result = new ArrayList<>();
+        if (!StringUtils.hasLength(toolCallsStr)) {
+            return result;
+        }
+        try {
+            result = JSONArray.parseArray(toolCallsStr, AssistantMessage.ToolCall.class);
+        } catch (Exception e) {
+            String normalized = toolCallsStr.replaceAll("\\]\\s*\\[", ",");
+            try {
+                result = JSONArray.parseArray(normalized, AssistantMessage.ToolCall.class);
+            } catch (Exception ex) {
+                log.warn("Failed to parse tool_calls: {}", toolCallsStr, ex);
+            }
+        }
+        return result;
     }
 
     @Data

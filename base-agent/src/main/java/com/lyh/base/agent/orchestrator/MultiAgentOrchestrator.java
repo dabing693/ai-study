@@ -1,53 +1,72 @@
 package com.lyh.base.agent.orchestrator;
 
+import com.lyh.base.agent.context.RequestContext;
 import com.lyh.base.agent.define.BaseAgent;
-import lombok.RequiredArgsConstructor;
+import com.lyh.base.agent.define.StreamableAgent;
+import com.lyh.base.agent.domain.StreamEvent;
 import lombok.extern.slf4j.Slf4j;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.*;
 import java.util.function.Consumer;
 
-/**
- * 多 Agent 编排器
- * 负责协调多个 Agent 的协作执行
- */
 @Slf4j
-@RequiredArgsConstructor
 public class MultiAgentOrchestrator {
 
     private final AgentRegistry agentRegistry;
     private final ExecutorService executorService;
 
-    /**
-     * 执行多 Agent 会诊（先并行后顺序模式）
-     *
-     * @param query            用户查询
-     * @param parallelAgents   并行执行的 Agent 名称列表
-     * @param sequentialAgents 顺序执行的 Agent 名称列表（接收前面所有结果）
-     * @param eventConsumer    事件消费者，用于流式输出
-     * @return 最终汇总结果
-     */
+    public MultiAgentOrchestrator(AgentRegistry agentRegistry, ExecutorService executorService) {
+        this.agentRegistry = agentRegistry;
+        this.executorService = executorService;
+    }
+
     public String executeConsultation(String query,
                                       List<String> parallelAgents,
                                       List<String> sequentialAgents,
-                                      Consumer<AgentResult> eventConsumer) {
+                                      Consumer<AgentEvent> eventConsumer) {
+        return executeConsultation(null, query, parallelAgents, sequentialAgents, eventConsumer, null);
+    }
+
+    public String executeConsultation(String parentConversationId,
+                                      String query,
+                                      List<String> parallelAgents,
+                                      List<String> sequentialAgents,
+                                      Consumer<AgentEvent> eventConsumer,
+                                      AgentConversationMappingService mappingService) {
         List<AgentResult> allResults = new ArrayList<>();
+        Map<String, String> agentConversationIds = new HashMap<>();
+
+        List<String> allAgents = new ArrayList<>();
+        allAgents.addAll(parallelAgents);
+        allAgents.addAll(sequentialAgents);
 
         log.info("开始多 Agent 会诊，并行 Agents: {}, 顺序 Agents: {}", parallelAgents, sequentialAgents);
 
-        // 1. 并行执行第一阶段 Agents
-        List<AgentResult> parallelResults = executeParallel(parallelAgents, query, eventConsumer);
+        for (String agentName : allAgents) {
+            String agentConvId = UUID.randomUUID().toString().replace("-", "");
+            agentConversationIds.put(agentName, agentConvId);
+
+            if (mappingService != null && parentConversationId != null) {
+                String description = agentRegistry.getAgentDescription(agentName);
+                mappingService.createMapping(parentConversationId, agentName, agentConvId, description);
+            }
+        }
+
+        List<AgentResult> parallelResults = executeParallel(
+                parallelAgents, query, eventConsumer, agentConversationIds, parentConversationId, mappingService);
         allResults.addAll(parallelResults);
 
-        // 2. 顺序执行第二阶段 Agents，每个 Agent 接收前面所有结果
         String context = buildContext(query, parallelResults);
-        List<AgentResult> sequentialResults = executeSequential(sequentialAgents, context, allResults, eventConsumer);
+        List<AgentResult> sequentialResults = executeSequential(
+                sequentialAgents, context, allResults, eventConsumer, agentConversationIds, parentConversationId, mappingService);
         allResults.addAll(sequentialResults);
 
-        // 3. 返回最后一个 Agent 的结果（通常是总结 Agent）
         if (!sequentialResults.isEmpty()) {
             return sequentialResults.get(sequentialResults.size() - 1).getContent();
         } else if (!parallelResults.isEmpty()) {
@@ -56,16 +75,18 @@ public class MultiAgentOrchestrator {
         return "未生成结果";
     }
 
-    /**
-     * 并行执行多个 Agent
-     */
     private List<AgentResult> executeParallel(List<String> agentNames, String query,
-                                              Consumer<AgentResult> eventConsumer) {
+                                              Consumer<AgentEvent> eventConsumer,
+                                              Map<String, String> agentConversationIds,
+                                              String parentConversationId,
+                                              AgentConversationMappingService mappingService) {
         List<Future<AgentResult>> futures = new ArrayList<>();
 
         for (String agentName : agentNames) {
+            String agentConvId = agentConversationIds.get(agentName);
             Future<AgentResult> future = executorService.submit(() -> {
-                return executeSingleAgent(agentName, query, eventConsumer);
+                return executeSingleAgent(agentName, query, eventConsumer, agentConvId,
+                        parentConversationId, mappingService);
             });
             futures.add(future);
         }
@@ -81,17 +102,19 @@ public class MultiAgentOrchestrator {
         return results;
     }
 
-    /**
-     * 顺序执行多个 Agent
-     */
     private List<AgentResult> executeSequential(List<String> agentNames, String initialContext,
                                                 List<AgentResult> previousResults,
-                                                Consumer<AgentResult> eventConsumer) {
+                                                Consumer<AgentEvent> eventConsumer,
+                                                Map<String, String> agentConversationIds,
+                                                String parentConversationId,
+                                                AgentConversationMappingService mappingService) {
         List<AgentResult> results = new ArrayList<>();
         String currentContext = initialContext;
 
         for (String agentName : agentNames) {
-            AgentResult result = executeSingleAgent(agentName, currentContext, eventConsumer);
+            String agentConvId = agentConversationIds.get(agentName);
+            AgentResult result = executeSingleAgent(agentName, currentContext, eventConsumer, agentConvId,
+                    parentConversationId, mappingService);
             results.add(result);
             previousResults.add(result);
 
@@ -102,51 +125,116 @@ public class MultiAgentOrchestrator {
         return results;
     }
 
-    /**
-     * 执行单个 Agent
-     */
     private AgentResult executeSingleAgent(String agentName, String input,
-                                           Consumer<AgentResult> eventConsumer) {
+                                           Consumer<AgentEvent> eventConsumer,
+                                           String agentConversationId,
+                                           String parentConversationId,
+                                           AgentConversationMappingService mappingService) {
         LocalDateTime startTime = LocalDateTime.now();
         log.info("开始执行 Agent: {}", agentName);
 
+        String description = agentRegistry.getAgentDescription(agentName);
+
+        if (mappingService != null && parentConversationId != null) {
+            mappingService.updateAgentStatus(parentConversationId, agentName, "running", startTime, null);
+        }
+
+        if (eventConsumer != null) {
+            eventConsumer.accept(AgentEvent.start(agentName, agentConversationId, description));
+        }
+
         try {
             BaseAgent agent = agentRegistry.getAgent(agentName);
-            String description = agentRegistry.getAgentDescription(agentName);
 
             if (agent == null) {
                 throw new RuntimeException("Agent 不存在: " + agentName);
             }
 
-            String result = agent.send(input);
+            String originalConversationId = RequestContext.getSession();
+            RequestContext.setSession(agentConversationId, true);
+
+            StringBuilder contentBuilder = new StringBuilder();
+
+            try {
+                if (agent instanceof StreamableAgent) {
+                    ((StreamableAgent) agent).chatStream(input, streamEvent -> {
+                        if (eventConsumer != null) {
+                            AgentEvent agentEvent = convertStreamEvent(agentName, streamEvent);
+                            if (agentEvent != null) {
+                                eventConsumer.accept(agentEvent);
+                            }
+                        }
+                        if ("delta".equals(streamEvent.getType()) && streamEvent.getContent() != null) {
+                            contentBuilder.append(streamEvent.getContent());
+                        }
+                    });
+                } else {
+                    String result = agent.send(input);
+                    contentBuilder.append(result);
+                    if (eventConsumer != null) {
+                        eventConsumer.accept(AgentEvent.delta(agentName, result));
+                    }
+                }
+            } finally {
+                if (originalConversationId != null) {
+                    RequestContext.setSession(originalConversationId, false);
+                } else {
+                    RequestContext.clear();
+                }
+            }
 
             LocalDateTime endTime = LocalDateTime.now();
-            AgentResult agentResult = AgentResult.success(agentName, description, result, startTime, endTime);
+            String content = contentBuilder.toString();
+            AgentResult agentResult = AgentResult.success(agentName, description, content, startTime, endTime);
 
             log.info("Agent 执行完成: {}, 耗时: {}ms", agentName, agentResult.getDurationMs());
 
+            if (mappingService != null && parentConversationId != null) {
+                mappingService.updateAgentStatus(parentConversationId, agentName, "success", startTime, endTime);
+            }
+
             if (eventConsumer != null) {
-                eventConsumer.accept(agentResult);
+                eventConsumer.accept(AgentEvent.done(agentName, "success", content));
             }
 
             return agentResult;
         } catch (Exception e) {
             log.error("Agent 执行失败: {}", agentName, e);
             LocalDateTime endTime = LocalDateTime.now();
-            AgentResult agentResult = AgentResult.error(agentName, agentRegistry.getAgentDescription(agentName),
-                    e.getMessage(), startTime, endTime);
+            AgentResult agentResult = AgentResult.error(agentName, description, e.getMessage(), startTime, endTime);
+
+            if (mappingService != null && parentConversationId != null) {
+                mappingService.updateAgentStatus(parentConversationId, agentName, "error", startTime, endTime);
+            }
 
             if (eventConsumer != null) {
-                eventConsumer.accept(agentResult);
+                eventConsumer.accept(AgentEvent.error(agentName, e.getMessage()));
             }
 
             return agentResult;
         }
     }
 
-    /**
-     * 构建上下文，将前面的结果整合
-     */
+    private AgentEvent convertStreamEvent(String agentName, StreamEvent streamEvent) {
+        if (streamEvent == null) return null;
+
+        String type = streamEvent.getType();
+        if (type == null) return null;
+
+        switch (type) {
+            case "delta":
+                return AgentEvent.delta(agentName, streamEvent.getContent());
+            case "reasoning_delta":
+                return AgentEvent.reasoning(agentName, streamEvent.getReasoningContent());
+            case "tool_call":
+                return AgentEvent.toolCall(agentName, streamEvent.getToolCalls());
+            case "tool_result":
+                return AgentEvent.toolResult(agentName, streamEvent.getContent());
+            default:
+                return null;
+        }
+    }
+
     private String buildContext(String originalQuery, List<AgentResult> results) {
         StringBuilder context = new StringBuilder();
         context.append("【原始查询】\n").append(originalQuery).append("\n\n");
@@ -162,5 +250,10 @@ public class MultiAgentOrchestrator {
         }
 
         return context.toString();
+    }
+
+    public interface AgentConversationMappingService {
+        void createMapping(String parentConversationId, String agentName, String agentConversationId, String description);
+        void updateAgentStatus(String parentConversationId, String agentName, String status, LocalDateTime startTime, LocalDateTime endTime);
     }
 }

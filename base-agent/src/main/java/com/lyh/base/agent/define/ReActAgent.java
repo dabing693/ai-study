@@ -23,7 +23,7 @@ import java.util.function.Consumer;
  */
 @Slf4j
 @Component
-public abstract class ReActAgent extends BaseAgent {
+public abstract class ReActAgent extends BaseAgent implements StreamableAgent {
     public ReActAgent(ChatModel chatModel,
                       MemoryManager memoryManager,
                       ToolManager toolManager
@@ -53,6 +53,7 @@ public abstract class ReActAgent extends BaseAgent {
         return planResponse;
     }
 
+    @Override
     public void chatStream(String query, Consumer<StreamEvent> eventConsumer) {
         List<Message> messageList = sense(query);
         for (int i = 0; i < getMaxLoopNum(); i++) {

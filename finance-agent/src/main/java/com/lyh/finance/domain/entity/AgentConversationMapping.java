@@ -7,19 +7,18 @@ import lombok.Data;
 
 import java.time.LocalDateTime;
 
-/**
- * @author claude code with kimi
- * @date 2026/2/6
- */
 @Data
-@TableName("conversation")
-public class Conversation {
+@TableName("agent_conversation_mapping")
+public class AgentConversationMapping {
     @TableId(type = IdType.AUTO)
     private Long id;
-    private String conversationId;
-    private Long userId;
-    private String title;
-    private String conversationType;
+    private String parentConversationId;
+    private String agentName;
+    private String agentConversationId;
+    private String agentDescription;
+    private String status;
+    private LocalDateTime startTime;
+    private LocalDateTime endTime;
     private LocalDateTime createTime;
     private LocalDateTime updateTime;
 }

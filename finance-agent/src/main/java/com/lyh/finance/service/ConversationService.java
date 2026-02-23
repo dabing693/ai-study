@@ -23,20 +23,22 @@ public class ConversationService {
     }
 
     public Conversation createOrUpdateConversation(String conversationId, Long userId, String title) {
-        // 先查询是否已存在
+        return createOrUpdateConversation(conversationId, userId, title, "react");
+    }
+
+    public Conversation createOrUpdateConversation(String conversationId, Long userId, String title, String conversationType) {
         Conversation existing = conversationMapper.selectByConversationIdAndUserId(conversationId, userId);
         if (existing != null) {
-            // 已存在，更新时间
             existing.setUpdateTime(LocalDateTime.now());
             conversationMapper.updateById(existing);
             return existing;
         }
 
-        // 不存在，创建新记录
         Conversation conversation = new Conversation();
         conversation.setConversationId(conversationId);
         conversation.setUserId(userId);
         conversation.setTitle(title);
+        conversation.setConversationType(conversationType);
         conversation.setCreateTime(LocalDateTime.now());
         conversation.setUpdateTime(LocalDateTime.now());
         conversationMapper.insert(conversation);

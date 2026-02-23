@@ -47,8 +47,10 @@
 -->
 <script setup>
 import { ref, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
 import { useAuthStore } from '../stores/auth.js';
 
+const router = useRouter();
 const emit = defineEmits(['close', 'load']);
 
 const authStore = useAuthStore();
@@ -95,7 +97,12 @@ const deleteConversation = async (conv) => {
 };
 
 const loadConversation = (conv) => {
-  emit('load', conv);
+  const conversationType = conv.conversationType || 'react';
+  if (conversationType === 'multi') {
+    router.push({ name: 'multi-conversation', params: { id: conv.conversationId } });
+  } else {
+    router.push({ name: 'conversation', params: { id: conv.conversationId } });
+  }
   close();
 };
 
