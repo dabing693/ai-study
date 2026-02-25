@@ -64,3 +64,9 @@ API Key 与外部服务地址配置在：
 
 - `trade-agent` 使用 Spring AI WebMVC MCP Server。
 - `finance-agent` 使用 MySQL + Milvus 作为记忆存储，详见 `md/milvus.md`。
+
+## 启动命令
+```shell
+//启动aktools
+python -m aktools --port 8089
+```
