@@ -1,2 +1,4 @@
 /LoRA_intent_detection/data/
 /LoRA_intent_detection/models/
+/.claude/
+*.env
