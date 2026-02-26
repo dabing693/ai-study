@@ -15,7 +15,7 @@ from langchain_tavily import TavilySearch
 from langgraph.types import StreamMode
 from langgraph.checkpoint.memory import InMemorySaver
 
-from tools import *
+from src.tools import *
 
 load_dotenv(override=True)
 warnings.filterwarnings("ignore", category=InsecureKeyLengthWarning)
@@ -41,9 +41,12 @@ def build_agent(model_stream: bool = False):
         max_retries=3,  # 最大重试次数
     )
 
-    agent = create_agent(model=model, tools=tools, checkpointer=memory,
-                         system_prompt='你是一名乐于助人的智能助手')
-    return agent
+    return create_agent(model=model, tools=tools, checkpointer=memory,
+                        system_prompt='你是一名乐于助人的智能助手')
+
+
+stream_agent = build_agent(model_stream=True)
+no_stream_agent = build_agent()
 
 
 def invoke(prompt: str):
@@ -53,13 +56,13 @@ def invoke(prompt: str):
                 "thread_id": "6"
             }
         }
-        agent = build_agent()
-        result = agent.invoke(
+
+        result = no_stream_agent.invoke(
             input={'messages': [{'role': 'user', 'content': prompt}]},
             config=config
         )
         last_msg = result['messages'][-1].content
-        print(agent.get_state(config))
+        print(no_stream_agent.get_state(config))
         return last_msg
     except Exception as e:
         return f"Error: {e}"
@@ -72,7 +75,7 @@ def stream_invoke(prompt: str, stream_mode: StreamMode = "messages") -> Iterator
                 "thread_id": "6"
             }
         }
-        result = build_agent(model_stream=True).stream(
+        result = stream_agent.stream(
             input={'messages': [{'role': 'user', 'content': prompt}]},
             config=config,
             stream_mode=stream_mode
@@ -89,7 +92,7 @@ def astream_invoke(prompt: str, stream_mode: StreamMode = "messages") -> AsyncIt
                 "thread_id": "6"
             }
         }
-        result = build_agent(model_stream=True).astream(
+        result = stream_agent.astream(
             input={'messages': [{'role': 'user', 'content': prompt}]},
             config=config,
             stream_mode=stream_mode
