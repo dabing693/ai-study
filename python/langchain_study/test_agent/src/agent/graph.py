@@ -40,9 +40,9 @@ def build_agent(model_stream: bool = False):
         timeout=60.0,  # 总超时时间（秒）
         max_retries=3,  # 最大重试次数
     )
-
-    return create_agent(model=model, tools=tools, checkpointer=memory,
-                        system_prompt='你是一名乐于助人的智能助手')
+    # langgraph dev会报错：因为使用了langgraph.checkpoint.memory.InMemorySaver
+    # return create_agent(model=model, tools=tools, checkpointer=memory, system_prompt='你是一名乐于助人的智能助手')
+    return create_agent(model=model, tools=tools, system_prompt='你是一名乐于助人的智能助手')
 
 
 stream_agent = build_agent(model_stream=True)

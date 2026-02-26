@@ -1,3 +1,13 @@
+``` shell
+pipreqs . --encoding=utf8 --force
+uv add -r requirements.txt
+uv sync
+
+langgraph dev
+#本地docker
+langgraph up
+```
+
 # New LangGraph Project
 
 [![CI](https://github.com/langchain-ai/new-langgraph-project/actions/workflows/unit-tests.yml/badge.svg)](https://github.com/langchain-ai/new-langgraph-project/actions/workflows/unit-tests.yml)
