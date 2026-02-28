@@ -6,6 +6,19 @@ uv sync
 langgraph dev
 #本地docker
 langgraph up
+
+# 人在闭环 langsmith确认，填入值：
+# json
+{
+  "decisions": [
+    {
+      "type": "approve"
+    }
+  ]
+}
+# yaml
+decisions:
+  - type: approve
 ```
 
 # New LangGraph Project

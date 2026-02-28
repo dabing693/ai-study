@@ -1,7 +1,7 @@
 import asyncio
 import json
 import warnings
-from typing import Iterator, Any, AsyncIterator
+from typing import Iterator, AsyncIterator
 
 from fastapi import FastAPI, Request
 from fastapi.responses import StreamingResponse
@@ -21,10 +21,11 @@ app = FastAPI()
 
 tavily_api_key = os.getenv('TAVILY_API_KEY')
 # Use the updated TavilySearch class
-web_search = TavilySearch(max_results=2, api_key=tavily_api_key)
+tavily_search = TavilySearch(max_results=2, api_key=tavily_api_key)
 
-tools = [web_search, get_weather, simple_write_file]
-middleware = [trim_messages, dynamic_model_routing, build_summarization_middleware()]
+tools = [tavily_search, get_weather, simple_write_file]
+middleware = [build_human_in_the_loop_middleware(), trim_messages, dynamic_model_routing,
+              build_summarization_middleware()]
 memory = InMemorySaver()
 
 

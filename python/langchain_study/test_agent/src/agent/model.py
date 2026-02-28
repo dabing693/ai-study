@@ -3,7 +3,8 @@ from typing import Any
 
 from dotenv import load_dotenv
 from langchain.agents import AgentState
-from langchain.agents.middleware import wrap_model_call, before_model, SummarizationMiddleware, ModelRequest
+from langchain.agents.middleware import wrap_model_call, before_model, \
+    SummarizationMiddleware, HumanInTheLoopMiddleware, ModelRequest
 from langchain_community.chat_models import ChatZhipuAI
 from langchain_core.language_models import ModelProfile
 from langchain_core.messages import HumanMessage, SystemMessage
@@ -69,6 +70,22 @@ def build_summarization_middleware() -> SummarizationMiddleware:
         model=build_model(model_stream=False, enable_thinking=False),
         max_tokens_before_summary=3000,
         messages_to_keep=10
+    )
+
+
+def build_human_in_the_loop_middleware():
+    return HumanInTheLoopMiddleware(
+        interrupt_on={
+            "tavily_search": {
+                "allowed_decisions": ['approve', 'edit', 'reject'],
+                "description": lambda tool_call, state, runtime:
+                f"模型准备进行Tavily搜索：{state.get('query')}"
+            },
+            "get_weather": {
+                "allowed_decisions": ["approve", "reject"]
+            },
+        },
+        description_prefix='工具执行需要人工审批'
     )
 
 
