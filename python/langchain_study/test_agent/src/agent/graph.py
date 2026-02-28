@@ -32,7 +32,7 @@ def build_agent(model_stream: bool = False):
     # langgraph dev会报错：因为使用了langgraph.checkpoint.memory.InMemorySaver
     # return create_agent(model=model, tools=tools, checkpointer=memory, system_prompt='你是一名乐于助人的智能助手')
     return create_agent(model=model, tools=tools, system_prompt='你是一名乐于助人的智能助手',
-                        middleware=[dynamic_model_routing])
+                        middleware=[trim_messages, dynamic_model_routing])
 
 
 stream_agent = build_agent(model_stream=True)
