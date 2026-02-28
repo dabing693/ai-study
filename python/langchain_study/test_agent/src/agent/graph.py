@@ -24,18 +24,24 @@ tavily_api_key = os.getenv('TAVILY_API_KEY')
 web_search = TavilySearch(max_results=2, api_key=tavily_api_key)
 
 tools = [web_search, get_weather, simple_write_file]
+middleware = [trim_messages, dynamic_model_routing, build_summarization_middleware()]
 memory = InMemorySaver()
 
 
-def build_agent(model_stream: bool = False):
+def build_agent(model_stream: bool = False, use_memory: bool = False):
     model = build_model(model_stream)
-    # langgraph dev会报错：因为使用了langgraph.checkpoint.memory.InMemorySaver
-    # return create_agent(model=model, tools=tools, checkpointer=memory, system_prompt='你是一名乐于助人的智能助手')
-    return create_agent(model=model, tools=tools, system_prompt='你是一名乐于助人的智能助手',
-                        middleware=[trim_messages, dynamic_model_routing])
+    if use_memory:
+        # langgraph dev会报错：因为使用了langgraph.checkpoint.memory.InMemorySaver
+        return create_agent(model=model, tools=tools, checkpointer=memory,
+                            system_prompt='你是一名乐于助人的智能助手',
+                            middleware=middleware)
+    else:
+        return create_agent(model=model, tools=tools, system_prompt='你是一名乐于助人的智能助手',
+                            middleware=middleware)
 
 
 stream_agent = build_agent(model_stream=True)
+stream_memory_agent = build_agent(model_stream=True, use_memory=True)
 no_stream_agent = build_agent()
 
 
@@ -65,7 +71,7 @@ def stream_invoke(prompt: str, stream_mode: StreamMode = "messages") -> Iterator
                 "thread_id": "6"
             }
         }
-        result = stream_agent.stream(
+        result = stream_memory_agent.stream(
             input={'messages': [{'role': 'user', 'content': prompt}]},
             config=config,
             stream_mode=stream_mode
@@ -82,7 +88,7 @@ def astream_invoke(prompt: str, stream_mode: StreamMode = "messages") -> AsyncIt
                 "thread_id": "6"
             }
         }
-        result = stream_agent.astream(
+        result = stream_memory_agent.astream(
             input={'messages': [{'role': 'user', 'content': prompt}]},
             config=config,
             stream_mode=stream_mode

@@ -3,7 +3,7 @@ from typing import Any
 
 from dotenv import load_dotenv
 from langchain.agents import AgentState
-from langchain.agents.middleware import wrap_model_call, before_model, ModelRequest
+from langchain.agents.middleware import wrap_model_call, before_model, SummarizationMiddleware, ModelRequest
 from langchain_community.chat_models import ChatZhipuAI
 from langchain_core.language_models import ModelProfile
 from langchain_core.messages import HumanMessage, SystemMessage
@@ -62,6 +62,14 @@ async def trim_messages(state: AgentState, runtime: Runtime) -> dict[str, Any]:
     if len(his_msg) > 4:
         state['messages'] = his_msg[0:1] + his_msg[-3:]
     print()
+
+
+def build_summarization_middleware() -> SummarizationMiddleware:
+    return SummarizationMiddleware(
+        model=build_model(model_stream=False, enable_thinking=False),
+        max_tokens_before_summary=3000,
+        messages_to_keep=10
+    )
 
 
 if __name__ == '__main__':
