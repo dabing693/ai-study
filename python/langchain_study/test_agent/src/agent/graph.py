@@ -1,20 +1,18 @@
 import asyncio
 import json
-import os
 import warnings
-from typing import Iterator, Any, AsyncIterator, Dict
+from typing import Iterator, Any, AsyncIterator
 
-from dotenv import load_dotenv
 from fastapi import FastAPI, Request
 from fastapi.responses import StreamingResponse
 from jwt import InsecureKeyLengthWarning
 from langchain.agents import create_agent
-from langchain_community.chat_models.zhipuai import ChatZhipuAI
 from langchain_core.messages import AIMessageChunk
 from langchain_tavily import TavilySearch
-from langgraph.types import StreamMode
 from langgraph.checkpoint.memory import InMemorySaver
+from langgraph.types import StreamMode
 
+from src.agent.model import *
 from src.tools import *
 
 load_dotenv(override=True)
@@ -30,19 +28,11 @@ memory = InMemorySaver()
 
 
 def build_agent(model_stream: bool = False):
-    model = ChatZhipuAI(
-        model='glm-4.5-flash',
-        zhipuai_api_key=os.getenv('ZHIPUAI_API_KEY'),
-        temperature=0.7,  # Add temperature parameter
-        max_tokens=4000,  # Add max_tokens parameter
-        streaming=model_stream,
-        # 添加超时配置
-        timeout=60.0,  # 总超时时间（秒）
-        max_retries=3,  # 最大重试次数
-    )
+    model = build_model(model_stream)
     # langgraph dev会报错：因为使用了langgraph.checkpoint.memory.InMemorySaver
     # return create_agent(model=model, tools=tools, checkpointer=memory, system_prompt='你是一名乐于助人的智能助手')
-    return create_agent(model=model, tools=tools, system_prompt='你是一名乐于助人的智能助手')
+    return create_agent(model=model, tools=tools, system_prompt='你是一名乐于助人的智能助手',
+                        middleware=[dynamic_model_routing])
 
 
 stream_agent = build_agent(model_stream=True)
