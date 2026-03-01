@@ -2,3 +2,6 @@
 adb reverse tcp:8080 tcp:8080
 #关闭windows系统防火墙
 Set-NetFirewallProfile -Profile Domain,Public,Private -Enabled False
+
+安装app到手机
+flutter run

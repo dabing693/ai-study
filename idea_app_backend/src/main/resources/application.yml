@@ -1,0 +1,14 @@
+server:
+  port: 8080
+  address: 0.0.0.0
+  servlet:
+    context-path: /api
+
+spring:
+  application:
+    name: idea-app-backend
+
+  # For JSON beautiful response during development
+  jackson:
+    serialization:
+      indent-output: true
