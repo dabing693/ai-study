@@ -8,7 +8,6 @@ from fastapi.responses import StreamingResponse
 from jwt import InsecureKeyLengthWarning
 from langchain.agents import create_agent
 from langchain_core.messages import AIMessageChunk
-from langchain_tavily import TavilySearch
 from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.types import StreamMode
 
@@ -19,13 +18,9 @@ load_dotenv(override=True)
 warnings.filterwarnings("ignore", category=InsecureKeyLengthWarning)
 app = FastAPI()
 
-tavily_api_key = os.getenv('TAVILY_API_KEY')
-# Use the updated TavilySearch class
-tavily_search = TavilySearch(max_results=2, api_key=tavily_api_key)
-
 tools = [tavily_search, get_weather, simple_write_file]
-middleware = [build_human_in_the_loop_middleware(), trim_messages, dynamic_model_routing,
-              build_summarization_middleware()]
+middleware = [humanInTheLoopMiddleware, trim_messages, dynamic_model_routing,
+              summarizationMiddleware]
 memory = InMemorySaver()
 
 

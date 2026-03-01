@@ -6,23 +6,49 @@ from langchain.agents import AgentState
 from langchain.agents.middleware import wrap_model_call, before_model, \
     SummarizationMiddleware, HumanInTheLoopMiddleware, ModelRequest
 from langchain_community.chat_models import ChatZhipuAI
-from langchain_core.language_models import ModelProfile
+# 不支持bind_tools的模型
+# from langchain_community.chat_models import ChatOpenAI
+from langchain_openai import ChatOpenAI
+from langchain_core.language_models import ModelProfile, BaseChatModel
 from langchain_core.messages import HumanMessage, SystemMessage
 from langgraph.runtime import Runtime
 
 load_dotenv(override=True)
 
 
-def build_model(model_stream: bool = False, enable_thinking=True) -> ChatZhipuAI:
+def build_model(model_stream: bool = False, enable_thinking=True,
+                provider: str = 'openai') -> BaseChatModel:
+    if provider == 'openrouter':
+        return ChatOpenAI(
+            openai_api_base="https://openrouter.ai/api/v1",
+            model="openrouter/free",
+            openai_api_key=os.getenv('OPENROUTER_API_KEY'),
+            temperature=0.7,  # Add temperature parameter
+            max_tokens=8192,  # Add max_tokens parameter
+            streaming=model_stream,
+            # 添加超时配置
+            request_timeout=1200,  # 总超时时间（秒）
+            max_retries=3,  # 最大重试次数
+        )
+
+    if provider == 'openai':
+        return ChatOpenAI(
+            openai_api_base="https://open.bigmodel.cn/api/paas/v4",
+            model="glm-4.5-flash",
+            openai_api_key=os.getenv('ZHIPUAI_API_KEY'),
+            temperature=0.7,  # Add temperature parameter
+            max_tokens=8192,  # Add max_tokens parameter
+            streaming=model_stream,
+            # 添加超时配置
+            request_timeout=1200,  # 总超时时间（秒）
+            max_retries=3,  # 最大重试次数
+        )
     return ChatZhipuAI(
         model='glm-4.5-flash',
         zhipuai_api_key=os.getenv('ZHIPUAI_API_KEY'),
         temperature=0.7,  # Add temperature parameter
-        max_tokens=4000,  # Add max_tokens parameter
+        max_tokens=8192,  # Add max_tokens parameter
         streaming=model_stream,
-        # 添加超时配置
-        timeout=60.0,  # 总超时时间（秒）
-        max_retries=3,  # 最大重试次数
         profile=ModelProfile(reasoning_output=False),
         extra_body={
             "chat_template_kwargs": {
@@ -88,6 +114,9 @@ def build_human_in_the_loop_middleware():
         description_prefix='工具执行需要人工审批'
     )
 
+
+summarizationMiddleware = build_summarization_middleware()
+humanInTheLoopMiddleware = build_human_in_the_loop_middleware()
 
 if __name__ == '__main__':
     model = build_model(model_stream=True, enable_thinking=True)

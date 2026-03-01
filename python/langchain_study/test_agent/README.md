@@ -4,6 +4,7 @@ uv add -r requirements.txt
 uv sync
 
 langgraph dev
+langgraph dev --config deep_agent_langgraph.json
 #本地docker
 langgraph up
 
