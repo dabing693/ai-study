@@ -11,7 +11,7 @@
     <module>base-agent</module>
     <module>newsnow4j</module>
     <module>finance-agent-reactive</module>
-    <module>idea_app_backend</module>
+    <module>idea-app-backend</module>
   </modules>
   <properties>
     <maven.compiler.source>21</maven.compiler.source>

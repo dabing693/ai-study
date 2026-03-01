@@ -5,8 +5,8 @@ import '../models/pulse_message.dart';
 import '../models/project_stats.dart';
 
 class ApiService {
-  // Use 127.0.0.1 combined with 'adb reverse tcp:8080 tcp:8080'
-  static final String baseUrl = 'http://127.0.0.1:8080/api';
+  // Use 127.0.0.1 combined with 'adb reverse tcp:8100 tcp:8100'
+  static final String baseUrl = 'http://127.0.0.1:8100/api';
 
   final Dio _dio = Dio(BaseOptions(
     baseUrl: baseUrl,
