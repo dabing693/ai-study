@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html class="light" lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>社交化项目工作台 - Material Design</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&amp;family=Noto+Sans+SC:wght@300;400;500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "m3-surface": "#fef7ff",
+                        "m3-surface-container": "#f3edf7",
+                        "m3-primary": "#6750a4",
+                        "m3-on-primary": "#ffffff",
+                        "m3-primary-container": "#eaddff",
+                        "m3-on-primary-container": "#21005d",
+                        "m3-secondary-container": "#e8def8",
+                        "m3-on-secondary-container": "#1d192b",
+                        "m3-outline": "#79747e",
+                        "m3-surface-variant": "#e7e0ec",
+                        "m3-on-surface-variant": "#49454f"
+                    },
+                    fontFamily: {
+                        "sans": ["Roboto", "Noto Sans SC", "PingFang SC", "sans-serif"]
+                    },
+                },
+            },
+        }
+    </script>
+<style type="text/tailwindcss">
+        @layer base {
+            body {
+                @apply bg-m3-surface text-m3-on-surface-variant;
+                -webkit-tap-highlight-color: transparent;
+            }
+        }
+        .m3-tab-active::after {
+            content: '';
+            @apply absolute bottom-0 left-1/2 -translate-x-1/2 w-16 h-1 bg-m3-primary rounded-t-full;
+        }
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="font-sans pb-28">
+<header class="sticky top-0 z-50 bg-m3-surface/90 backdrop-blur-md px-4 py-3 flex items-center justify-between">
+<div class="flex items-center gap-4">
+<button class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-m3-surface-variant/20">
+<span class="material-symbols-outlined">menu</span>
+</button>
+<div>
+<h1 class="text-xl font-normal text-slate-900">项目工作台</h1>
+</div>
+</div>
+<div class="flex items-center gap-1">
+<button class="px-3 h-8 rounded-full border border-m3-outline text-xs font-medium text-m3-primary hover:bg-m3-primary/5">
+            EN/中
+        </button>
+<button class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-m3-surface-variant/20 relative">
+<span class="material-symbols-outlined">notifications</span>
+<span class="absolute top-2.5 right-2.5 w-2 h-2 bg-red-600 rounded-full border-2 border-m3-surface"></span>
+</button>
+<img alt="Profile" class="w-8 h-8 rounded-full object-cover ml-1" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBRZPVIfKVT2R_-FceE5hjQHPyRtSn19afwjgJutIf9PL23_2x580gXys37XSUwgETBkJOHFL4w8MJYgNgl9jokhRhI33Add1F-lS10SRe1BC1QjDfGvZtzPyUkaQHAB2W3oP4Ws6WUienVYiiC-uKa8UabUnLIgPdwa4xLqBAbBvx8u4QmIRrPnBBawJ-akK9XmKMDRE1rjtPqcFW4aRKQ3IB-Ws-Ip5kuXKUPiPfyJrDvHXMCvdaIR24Dm3hHd86fODG5hjVlzIY"/>
+</div>
+</header>
+<div class="bg-m3-surface border-b border-m3-surface-variant/50 sticky top-[64px] z-40">
+<div class="flex px-2 overflow-x-auto no-scrollbar">
+<button class="relative px-6 py-3.5 text-sm font-medium text-m3-primary m3-tab-active flex-shrink-0">概览</button>
+<button class="relative px-6 py-3.5 text-sm font-medium text-m3-on-surface-variant flex-shrink-0">文档</button>
+<button class="relative px-6 py-3.5 text-sm font-medium text-m3-on-surface-variant flex-shrink-0">代码</button>
+<button class="relative px-6 py-3.5 text-sm font-medium text-m3-on-surface-variant flex-shrink-0">路线图</button>
+</div>
+</div>
+<main class="p-4 space-y-6">
+<section class="bg-m3-surface-container rounded-3xl p-6 flex flex-col gap-4">
+<div class="flex items-start justify-between">
+<div class="flex items-center gap-4">
+<div class="w-14 h-14 bg-m3-primary-container rounded-2xl flex items-center justify-center">
+<span class="material-symbols-outlined text-m3-on-primary-container text-3xl">rocket_launch</span>
+</div>
+<div>
+<h2 class="text-2xl font-semibold text-slate-900 leading-tight">以太项目 (Aether)</h2>
+<p class="text-sm text-m3-on-surface-variant/80">创新工坊 · 运行中</p>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-2 overflow-x-auto no-scrollbar pt-2">
+<div class="flex -space-x-2 shrink-0">
+<img alt="Avatar" class="w-8 h-8 rounded-full border-2 border-m3-surface-container object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAQZF35rYaAlOLS1j-nV23J4E9J2hPPSXassdDfVgrp2BTmJg5PS-DX__ztI10NeBXtBlJJJZhC0aAZe-4SEqSi76a9BbcdBhmTHP_gCK4FufmtWOhtAu0hwONM8IjkpD-2E69-FOjw1a_8Gza-g2RRmNbeA_KCQevzi_MCyIym2wwRqQ3SCXzJRbbQjoZwsQ5yd0fLW6VvZL_vW7-GKxVUU7nkuoJpCYQdgcibt7cwFDlrY4aOdUpiPfY19LgNiK6fER-UpZu_67I"/>
+<img alt="Avatar" class="w-8 h-8 rounded-full border-2 border-m3-surface-container object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB_qnOB1eqP4yuBUPPcHV-5tbA1Ml0zPcb7ZMDYwtRUUGLxplOQA5Z6tUqXR00IODnejL3Dv_dp6RR7aCYGEMFTfpHOlNmtkMT_s1swnLXzFOrW3yCcr57fzoimVvxmrZZqXwxTPjiX6AGdQwetbJL_uroGEJybT6-0dCltgAzEN5Uxg4RROasGCHMlqV2B4i5ci2Al1v07hQ7k6U2kOFFg7m5livHhNgkKlVRJPF1b6gbWwO9ZkVkf_YODba0GiTSFbZWYRla3vjw"/>
+<div class="w-8 h-8 rounded-full border-2 border-m3-surface-container bg-m3-secondary-container flex items-center justify-center text-[10px] font-bold text-m3-on-secondary-container">+10</div>
+</div>
+<span class="h-4 w-[1px] bg-m3-outline/20 mx-1"></span>
+<div class="flex items-center gap-1.5 whitespace-nowrap px-3 py-1.5 bg-green-100/50 rounded-full text-green-800 text-xs font-medium">
+<span class="w-2 h-2 rounded-full bg-green-500"></span>
+                12人 在线
+            </div>
+<div class="flex items-center gap-1.5 whitespace-nowrap px-3 py-1.5 bg-m3-primary/5 rounded-full text-m3-primary text-xs font-medium">
+<span class="material-symbols-outlined text-base">forum</span>
+                28条 讨论
+            </div>
+</div>
+</section>
+<section class="grid grid-cols-2 gap-3">
+<div class="bg-m3-surface-container rounded-2xl p-4 flex flex-col gap-3 border border-transparent active:border-m3-primary transition-colors">
+<span class="material-symbols-outlined text-m3-primary">description</span>
+<div>
+<h3 class="font-medium text-slate-900">文档</h3>
+<p class="text-xs text-m3-on-surface-variant">14份 新指南</p>
+</div>
+</div>
+<div class="bg-m3-surface-container rounded-2xl p-4 flex flex-col gap-3 border border-transparent">
+<span class="material-symbols-outlined text-m3-primary">terminal</span>
+<div>
+<h3 class="font-medium text-slate-900">代码</h3>
+<p class="text-xs text-m3-on-surface-variant">v1.2 稳定版</p>
+</div>
+</div>
+<div class="bg-m3-surface-container rounded-2xl p-4 flex flex-col gap-3 border border-transparent">
+<span class="material-symbols-outlined text-m3-primary">map</span>
+<div>
+<h3 class="font-medium text-slate-900">路线图</h3>
+<p class="text-xs text-m3-on-surface-variant">Q3 目标</p>
+</div>
+</div>
+<div class="bg-m3-primary-container rounded-2xl p-4 flex flex-col gap-3">
+<span class="material-symbols-outlined text-m3-on-primary-container">bolt</span>
+<div>
+<h3 class="font-medium text-m3-on-primary-container">智能工具</h3>
+<p class="text-xs text-m3-on-primary-container/70">Agent 助手就绪</p>
+</div>
+</div>
+</section>
+<section class="bg-white border border-m3-surface-variant rounded-3xl p-6">
+<div class="flex items-center justify-between mb-4">
+<h2 class="text-lg font-medium text-slate-900">总进度</h2>
+<span class="text-sm font-semibold text-m3-primary">68%</span>
+</div>
+<div class="w-full h-2 bg-m3-surface-variant rounded-full mb-6 overflow-hidden">
+<div class="h-full bg-m3-primary w-[68%] rounded-full"></div>
+</div>
+<div class="grid grid-cols-3 gap-2 text-center">
+<div>
+<p class="text-xl font-bold text-slate-900">482</p>
+<p class="text-[10px] font-medium text-m3-on-surface-variant uppercase tracking-wide">提交</p>
+</div>
+<div class="border-x border-m3-surface-variant">
+<p class="text-xl font-bold text-slate-900">24</p>
+<p class="text-[10px] font-medium text-m3-on-surface-variant uppercase tracking-wide">创意</p>
+</div>
+<div>
+<p class="text-xl font-bold text-slate-900">08</p>
+<p class="text-[10px] font-medium text-m3-on-surface-variant uppercase tracking-wide">周期</p>
+</div>
+</div>
+</section>
+<section>
+<h2 class="px-1 text-sm font-medium text-m3-on-surface-variant mb-4">动态更新</h2>
+<div class="bg-white border border-m3-surface-variant rounded-3xl overflow-hidden">
+<div class="flex items-center gap-4 p-4 hover:bg-m3-surface-variant/10 active:bg-m3-surface-variant/20 border-b border-m3-surface-variant/50">
+<img alt="Dev" class="w-10 h-10 rounded-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAQZF35rYaAlOLS1j-nV23J4E9J2hPPSXassdDfVgrp2BTmJg5PS-DX__ztI10NeBXtBlJJJZhC0aAZe-4SEqSi76a9BbcdBhmTHP_gCK4FufmtWOhtAu0hwONM8IjkpD-2E69-FOjw1a_8Gza-g2RRmNbeA_KCQevzi_MCyIym2wwRqQ3SCXzJRbbQjoZwsQ5yd0fLW6VvZL_vW7-GKxVUU7nkuoJpCYQdgcibt7cwFDlrY4aOdUpiPfY19LgNiK6fER-UpZu_67I"/>
+<div class="flex-1">
+<p class="text-sm text-slate-900">
+<span class="font-bold">小明</span> 更新了 <span class="text-m3-primary">品牌资产.fig</span>
+</p>
+<p class="text-xs text-m3-on-surface-variant/70 mt-0.5">2分钟前</p>
+</div>
+<span class="material-symbols-outlined text-m3-on-surface-variant/40">palette</span>
+</div>
+<div class="flex items-center gap-4 p-4 hover:bg-m3-surface-variant/10 active:bg-m3-surface-variant/20 border-b border-m3-surface-variant/50">
+<img alt="Dev" class="w-10 h-10 rounded-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB_qnOB1eqP4yuBUPPcHV-5tbA1Ml0zPcb7ZMDYwtRUUGLxplOQA5Z6tUqXR00IODnejL3Dv_dp6RR7aCYGEMFTfpHOlNmtkMT_s1swnLXzFOrW3yCcr57fzoimVvxmrZZqXwxTPjiX6AGdQwetbJL_uroGEJybT6-0dCltgAzEN5Uxg4RROasGCHMlqV2B4i5ci2Al1v07hQ7k6U2kOFFg7m5livHhNgkKlVRJPF1b6gbWwO9ZkVkf_YODba0GiTSFbZWYRla3vjw"/>
+<div class="flex-1">
+<p class="text-sm text-slate-900">
+<span class="font-bold">架构师</span> 合并了 <span class="text-m3-primary">feat/ai-chat</span>
+</p>
+<p class="text-xs text-m3-on-surface-variant/70 mt-0.5">45分钟前</p>
+</div>
+<span class="material-symbols-outlined text-m3-on-surface-variant/40">settings_suggest</span>
+</div>
+<div class="flex items-center gap-4 p-4 hover:bg-m3-surface-variant/10 active:bg-m3-surface-variant/20">
+<div class="w-10 h-10 rounded-full bg-m3-surface-variant flex items-center justify-center text-m3-on-surface-variant">
+<span class="material-symbols-outlined">person</span>
+</div>
+<div class="flex-1">
+<p class="text-sm text-slate-900">
+<span class="font-bold">匿名用户_9</span> 编辑了 <span class="text-m3-primary">README.md</span>
+</p>
+<p class="text-xs text-m3-on-surface-variant/70 mt-0.5">1小时前</p>
+</div>
+<span class="material-symbols-outlined text-m3-on-surface-variant/40">edit_note</span>
+</div>
+</div>
+<button class="w-full mt-4 py-2 text-sm font-medium text-m3-primary">查看全部更新</button>
+</section>
+</main>
+<button class="fixed bottom-24 right-4 w-14 h-14 bg-m3-primary-container text-m3-on-primary-container rounded-2xl shadow-lg flex items-center justify-center transition-transform active:scale-90 z-50">
+<span class="material-symbols-outlined text-3xl">add</span>
+</button>
+<nav class="fixed bottom-0 left-0 right-0 bg-m3-surface-container px-4 py-3 pb-8 flex justify-around items-center border-t border-m3-surface-variant/30 z-50">
+<button class="flex flex-col items-center gap-1 group">
+<div class="px-5 py-1 bg-m3-secondary-container rounded-full text-m3-on-secondary-container">
+<span class="material-symbols-outlined text-[24px] fill-[1]">home</span>
+</div>
+<span class="text-xs font-medium text-slate-900">首页</span>
+</button>
+<button class="flex flex-col items-center gap-1 group">
+<div class="px-5 py-1 rounded-full group-hover:bg-m3-surface-variant/50 transition-colors">
+<span class="material-symbols-outlined text-[24px]">explore</span>
+</div>
+<span class="text-xs font-medium text-m3-on-surface-variant">探索</span>
+</button>
+<button class="flex flex-col items-center gap-1 group">
+<div class="px-5 py-1 rounded-full group-hover:bg-m3-surface-variant/50 transition-colors">
+<span class="material-symbols-outlined text-[24px]">chat_bubble</span>
+</div>
+<span class="text-xs font-medium text-m3-on-surface-variant">群组</span>
+</button>
+<button class="flex flex-col items-center gap-1 group">
+<div class="px-5 py-1 rounded-full group-hover:bg-m3-surface-variant/50 transition-colors">
+<span class="material-symbols-outlined text-[24px]">person</span>
+</div>
+<span class="text-xs font-medium text-m3-on-surface-variant">我的</span>
+</button>
+</nav>
+
+</body></html>

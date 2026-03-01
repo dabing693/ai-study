@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>创意发现流 - Material Design 3</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&amp;family=Noto+Sans+SC:wght@300;400;500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        // M3 Tonal Palette (Based on a Violet/Blue primary)
+                        primary: "#6750A4",
+                        "on-primary": "#FFFFFF",
+                        "primary-container": "#EADDFF",
+                        "on-primary-container": "#21005D",
+                        secondary: "#625B71",
+                        "on-secondary": "#FFFFFF",
+                        "secondary-container": "#E8DEF8",
+                        "on-secondary-container": "#1D192B",
+                        tertiary: "#7D5260",
+                        surface: "#FEF7FF",
+                        "on-surface": "#1D1B20",
+                        "surface-variant": "#E7E0EC",
+                        "on-surface-variant": "#49454F",
+                        outline: "#79747E",
+                    },
+                    fontFamily: {
+                        sans: ['Roboto', 'Noto Sans SC', 'sans-serif'],
+                    },
+                    borderRadius: {
+                        'xs': '4px',
+                        'sm': '8px',
+                        'md': '12px',
+                        'lg': '16px',
+                        'xl': '24px',
+                        '2xl': '28px',
+                    }
+                },
+            },
+        }
+    </script>
+<style type="text/tailwindcss">
+        @layer base {
+            body {
+                @apply bg-surface text-on-surface;
+                -webkit-tap-highlight-color: transparent;
+            }
+        }
+        .m3-card-elevated {
+            @apply bg-surface-variant/30 rounded-xl transition-shadow duration-200;
+            box-shadow: 0px 1px 3px 1px rgba(0, 0, 0, 0.15), 0px 1px 2px 0px rgba(0, 0, 0, 0.3);
+        }
+        .m3-card-standard {
+            @apply bg-surface-variant/20 border border-outline/20 rounded-xl;
+        }
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="pb-24">
+<header class="sticky top-0 z-50 bg-surface/95 backdrop-blur-md px-4 pt-4 pb-2">
+<div class="flex items-center gap-3 bg-surface-variant rounded-full px-4 py-2 shadow-sm">
+<span class="material-symbols-outlined text-on-surface-variant">search</span>
+<input class="bg-transparent border-none focus:ring-0 flex-1 text-sm text-on-surface placeholder-on-surface-variant/60" placeholder="搜索创意或项目..." type="text"/>
+<button class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-black/5">
+<span class="material-symbols-outlined text-on-surface-variant text-[20px]">language</span>
+</button>
+<div class="w-8 h-8 rounded-full overflow-hidden border border-outline/20">
+<img alt="Avatar" src="https://lh3.googleusercontent.com/aida-public/AB6AXuClFyVC_yUSUszpWuHMZyHz613Zm6ZNdkAWltnF-QN00uJ-8nYO67G5fQKZHqwTw1N75fdupKv_cYUe_x7_xYxjLaSMxTz7M_Y5Dxp2IqdZYEDv9z6fmsAo31IcihIU9nlAQii4VyCdZ_qtfk9b3sLE9tzwHGkZXwBG_kZDkj9o_JEWOIgIC_JayVWa6SS4GKYprQ2xURrhzLSb2j7af_Rdd_rK3L02YynznNIeg7HW7GLiabTLqd0fcgd4xfzI5cJXpl4EVd1rDeU"/>
+</div>
+</div>
+<div class="flex gap-2 overflow-x-auto hide-scrollbar py-4">
+<button class="px-4 py-1.5 rounded-sm bg-primary-container text-on-primary-container text-sm font-medium whitespace-nowrap">全部</button>
+<button class="px-4 py-1.5 rounded-sm border border-outline text-on-surface-variant text-sm font-medium whitespace-nowrap">人工智能</button>
+<button class="px-4 py-1.5 rounded-sm border border-outline text-on-surface-variant text-sm font-medium whitespace-nowrap">区块链</button>
+<button class="px-4 py-1.5 rounded-sm border border-outline text-on-surface-variant text-sm font-medium whitespace-nowrap">Web3</button>
+<button class="px-4 py-1.5 rounded-sm border border-outline text-on-surface-variant text-sm font-medium whitespace-nowrap">开源硬件</button>
+</div>
+</header>
+<main class="px-4 space-y-4">
+<div class="flex items-center justify-between pt-2">
+<h2 class="text-xl font-medium text-on-surface">创意发现流</h2>
+<button class="text-primary text-sm font-medium">查看更多</button>
+</div>
+<div class="m3-card-elevated overflow-hidden">
+<div class="p-4">
+<div class="flex justify-between items-start mb-3">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-tertiary/10 flex items-center justify-center">
+<span class="material-symbols-outlined text-tertiary">psychology</span>
+</div>
+<div>
+<h3 class="text-base font-bold text-on-surface">神经合成器</h3>
+<p class="text-[11px] text-on-surface-variant uppercase tracking-wider">匿名发布 · 2小时前</p>
+</div>
+</div>
+<span class="text-[12px] font-medium bg-secondary-container text-on-secondary-container px-2 py-0.5 rounded-md">3/5 席位</span>
+</div>
+<p class="text-sm text-on-surface-variant leading-relaxed mb-4">
+                    正在构建一个自主智能体，根据可穿戴设备的实时生物特征数据生成高保真音景。
+                </p>
+<div class="flex flex-wrap gap-2 mb-4">
+<span class="text-xs text-on-surface-variant bg-surface px-2 py-1 rounded-xs border border-outline/10">人工智能</span>
+<span class="text-xs text-on-surface-variant bg-surface px-2 py-1 rounded-xs border border-outline/10">Rust</span>
+</div>
+<div class="flex gap-2">
+<button class="flex-1 bg-primary text-on-primary py-2.5 rounded-full text-sm font-medium shadow-sm active:opacity-90">
+                        申请加入
+                    </button>
+<button class="w-12 h-10 flex items-center justify-center rounded-full bg-secondary-container text-on-secondary-container">
+<span class="material-symbols-outlined text-[20px]">favorite</span>
+</button>
+</div>
+</div>
+</div>
+<div class="m3-card-standard overflow-hidden">
+<img alt="Abstract Tech" class="w-full h-32 object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBWdEHUHiHW4anN0I8xzGgSmEXrFSwzQaCB6XOThoHVwGJZbs3KHGKcR4-reUzrpgFnprd3u_YHfY62rNH97xq0-g8B2AYsb9s6PI__pzQHF45Erai-247UYUuHqHUo_zdoLZFUR-fATbvYIu35g6o507Cl9ys4dSUYgryYDh6upKJLxq88-DmtdF6RI7Vzm6xBhkJmwBmPOx6NNRmcBk55-wwQm-RRa08Ge2hY5iypwX9D-zsHWxAQemuaEqgFQNSNqfrcAxx1XKY"/>
+<div class="p-4">
+<div class="flex justify-between items-start mb-2">
+<h3 class="text-base font-bold text-on-surface">AgentOS 操作系统</h3>
+<div class="flex gap-0.5">
+<span class="material-symbols-outlined text-primary text-sm" style="font-variation-settings: 'FILL' 1">star</span>
+<span class="text-xs font-medium">4.9</span>
+</div>
+</div>
+<p class="text-sm text-on-surface-variant line-clamp-2 mb-4">
+                    首个专为多智能体大模型协作设计的本地化操作系统。无云端依赖，无延迟。
+                </p>
+<div class="flex items-center justify-between">
+<div class="flex -space-x-2">
+<div class="w-7 h-7 rounded-full border-2 border-surface bg-primary flex items-center justify-center text-[10px] text-white">A</div>
+<div class="w-7 h-7 rounded-full border-2 border-surface bg-secondary flex items-center justify-center text-[10px] text-white">B</div>
+<div class="w-7 h-7 rounded-full border-2 border-surface bg-surface-variant flex items-center justify-center text-[10px] text-on-surface-variant">+8</div>
+</div>
+<button class="bg-surface-variant text-primary px-5 py-2 rounded-full text-sm font-medium border border-outline/20">
+                        申请加入
+                    </button>
+</div>
+</div>
+</div>
+<div class="bg-secondary-container/30 rounded-xl p-4 border border-transparent">
+<div class="flex items-center gap-3 mb-3">
+<div class="w-10 h-10 rounded-md bg-secondary text-on-secondary flex items-center justify-center">
+<span class="material-symbols-outlined">bubble_chart</span>
+</div>
+<h3 class="text-base font-bold text-on-surface">流体交互界面</h3>
+</div>
+<p class="text-sm text-on-surface-variant mb-4">
+                研究根据用户注视点实时变化的流体运动UI组件。探索下一代交互范式。
+            </p>
+<div class="flex gap-3">
+<button class="flex-1 bg-primary text-on-primary py-2.5 rounded-full text-sm font-medium">
+                    申请加入
+                </button>
+<button class="px-4 py-2.5 rounded-full border border-outline text-on-surface-variant text-sm font-medium">
+                    详情
+                </button>
+</div>
+</div>
+</main>
+<nav class="fixed bottom-0 left-0 right-0 bg-surface/90 backdrop-blur-xl border-t border-outline/10 px-6 pb-6 pt-3 flex justify-between items-center z-50">
+<button class="flex flex-col items-center gap-1 group">
+<div class="px-5 py-1 rounded-full bg-secondary-container text-on-secondary-container">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1">explore</span>
+</div>
+<span class="text-[11px] font-medium text-on-surface">探索</span>
+</button>
+<button class="flex flex-col items-center gap-1 text-on-surface-variant">
+<div class="px-5 py-1 rounded-full group-hover:bg-surface-variant transition-colors">
+<span class="material-symbols-outlined">biotech</span>
+</div>
+<span class="text-[11px] font-medium">实验室</span>
+</button>
+<div class="relative -top-4">
+<button class="w-14 h-14 rounded-2xl bg-primary text-on-primary shadow-lg flex items-center justify-center active:scale-95 transition-transform">
+<span class="material-symbols-outlined text-3xl">add</span>
+</button>
+</div>
+<button class="flex flex-col items-center gap-1 text-on-surface-variant">
+<div class="px-5 py-1 rounded-full group-hover:bg-surface-variant transition-colors">
+<span class="material-symbols-outlined">forum</span>
+</div>
+<span class="text-[11px] font-medium">消息</span>
+</button>
+<button class="flex flex-col items-center gap-1 text-on-surface-variant">
+<div class="px-5 py-1 rounded-full group-hover:bg-surface-variant transition-colors">
+<span class="material-symbols-outlined">account_circle</span>
+</div>
+<span class="text-[11px] font-medium">我的</span>
+</button>
+</nav>
+<div class="fixed bottom-1 left-1/2 -translate-x-1/2 w-32 h-1 bg-on-surface/20 rounded-full z-[60]"></div>
+
+</body></html>

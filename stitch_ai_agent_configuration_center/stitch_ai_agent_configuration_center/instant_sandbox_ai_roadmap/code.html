@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>实时沙盒与 AI 路线图</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&amp;family=Noto+Sans+SC:wght@300;400;500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        // Material Design 3 System Colors (Tonal Palettes)
+                        "m3-primary": "#0061A4",
+                        "m3-on-primary": "#FFFFFF",
+                        "m3-primary-container": "#D1E4FF",
+                        "m3-on-primary-container": "#001D36",
+                        "m3-secondary": "#535F70",
+                        "m3-on-secondary": "#FFFFFF",
+                        "m3-secondary-container": "#D7E3F7",
+                        "m3-on-secondary-container": "#101C2B",
+                        "m3-tertiary": "#6B5778",
+                        "m3-on-tertiary": "#FFFFFF",
+                        "m3-surface": "#FDFCFF",
+                        "m3-on-surface": "#1A1C1E",
+                        "m3-surface-variant": "#DFE2EB",
+                        "m3-on-surface-variant": "#43474E",
+                        "m3-outline": "#73777F",
+                        "m3-success": "#1E6D35"
+                    },
+                    fontFamily: {
+                        "sans": ["Roboto", "Noto Sans SC", "sans-serif"]
+                    }
+                },
+            },
+        }
+    </script>
+<style type="text/tailwindcss">
+        @layer base {
+            body {
+                @apply bg-[#F7F9FC] text-m3-on-surface antialiased;
+            }
+        }.m3-label-large { font-size: 0.875rem; font-weight: 500; line-height: 1.25rem; letter-spacing: 0.1px; }
+        .m3-label-medium { font-size: 0.75rem; font-weight: 500; line-height: 1rem; letter-spacing: 0.5px; }
+        .m3-title-large { font-size: 1.375rem; font-weight: 400; line-height: 1.75rem; }
+        .m3-title-medium { font-size: 1rem; font-weight: 500; line-height: 1.5rem; letter-spacing: 0.15px; }
+        .m3-body-medium { font-size: 0.875rem; font-weight: 400; line-height: 1.25rem; letter-spacing: 0.25px; }
+        .m3-body-small { font-size: 0.75rem; font-weight: 400; line-height: 1rem; letter-spacing: 0.4px; }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="flex flex-col min-h-screen">
+<header class="sticky top-0 z-50 bg-[#F7F9FC]/80 backdrop-blur-md px-4 py-3 flex items-center justify-between border-b border-m3-surface-variant">
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-m3-on-surface cursor-pointer">arrow_back</span>
+<h1 class="m3-title-medium">创世项目 (Genesis)</h1>
+</div>
+<div class="flex items-center gap-3">
+<div class="flex items-center bg-m3-secondary-container rounded-full px-1 py-0.5">
+<button class="px-3 py-1 m3-label-medium rounded-full bg-m3-primary text-m3-on-primary">中</button>
+<button class="px-3 py-1 m3-label-medium text-m3-on-secondary-container">EN</button>
+</div>
+<span class="material-symbols-outlined text-m3-on-surface-variant">more_vert</span>
+</div>
+</header>
+<main class="flex-1 px-4 py-6 space-y-8 max-w-md mx-auto w-full">
+<section>
+<div class="flex items-center justify-between mb-4">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-m3-primary">terminal</span>
+<h2 class="m3-title-large">实时沙盒</h2>
+</div>
+<div class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-green-100 text-m3-success">
+<span class="w-2 h-2 rounded-full bg-m3-success animate-pulse"></span>
+<span class="m3-label-medium uppercase">运行中</span>
+</div>
+</div>
+<div class="bg-white rounded-[28px] overflow-hidden shadow-sm border border-m3-surface-variant group">
+<div class="p-4 border-b border-m3-surface-variant bg-m3-surface-variant/10">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="p-2 bg-m3-primary-container text-m3-on-primary-container rounded-xl">
+<span class="material-symbols-outlined text-[20px]">view_in_ar</span>
+</div>
+<div>
+<p class="m3-title-medium">实例: V0.8.4-alpha</p>
+<p class="m3-body-small text-m3-on-surface-variant">Next.js + AI SDK · 24ms 延迟</p>
+</div>
+</div>
+</div>
+</div>
+<div class="relative aspect-video w-full bg-slate-200">
+<div class="w-full h-full bg-center bg-cover" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuAMGMAf2ttxjEe8LH6awWC8YvujgDCN1BlbMqFzm5z1STe021-YtESoBALSv6op4I6kQ-3lIgdNtWbs7uFZfNkREp4qMx4_RhgjKtAmSK8x9qwq02N1ro-e74wKwu8IBtqKpiLS47uVR8sBbKBfzYPNKmVwNwnrpDNVGCVuj1lCL49aQciQUm028XVisXKFaDqLHx9w5r74egopPiC6zWEi9tEvr8gzflGKshH-FtTyPFtOuLTU44HyXRq6FDr1TOf9kt2wp0s34VE");'></div>
+<div class="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent"></div>
+<button class="absolute bottom-4 right-4 bg-m3-primary text-m3-on-primary px-4 py-2 rounded-full flex items-center gap-2 shadow-lg active:scale-95 transition-transform">
+<span class="material-symbols-outlined text-sm">open_in_full</span>
+<span class="m3-label-large">全屏查看</span>
+</button>
+</div>
+<div class="p-4 flex gap-3 overflow-x-auto no-scrollbar">
+<div class="flex-shrink-0 flex items-center gap-2 px-3 py-2 rounded-xl bg-m3-surface-variant/30 text-m3-on-surface-variant border border-m3-outline/10">
+<span class="material-symbols-outlined text-[18px]">memory</span>
+<span class="m3-label-medium">16GB RAM</span>
+</div>
+<div class="flex-shrink-0 flex items-center gap-2 px-3 py-2 rounded-xl bg-m3-surface-variant/30 text-m3-on-surface-variant border border-m3-outline/10">
+<span class="material-symbols-outlined text-[18px]">public</span>
+<span class="m3-label-medium">节点: 东京</span>
+</div>
+</div>
+</div>
+</section>
+<section>
+<div class="flex items-center justify-between mb-6">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-m3-primary">auto_awesome</span>
+<h2 class="m3-title-large">AI 预测路线图</h2>
+</div>
+<div class="flex -space-x-3">
+<div class="w-8 h-8 rounded-full border-2 border-[#F7F9FC] bg-m3-secondary-container flex items-center justify-center m3-label-medium">A</div>
+<div class="w-8 h-8 rounded-full border-2 border-[#F7F9FC] bg-m3-primary-container flex items-center justify-center m3-label-medium">B</div>
+</div>
+</div>
+<div class="relative space-y-0">
+<div class="absolute left-[15px] top-4 bottom-4 w-[2px] bg-m3-surface-variant"></div>
+<div class="relative pl-10 pb-8">
+<div class="absolute left-0 top-1 w-8 h-8 rounded-full bg-m3-primary text-m3-on-primary flex items-center justify-center z-10 shadow-sm">
+<span class="material-symbols-outlined text-[20px]">check</span>
+</div>
+<div class="flex flex-col">
+<div class="flex items-center gap-2 mb-1">
+<span class="m3-label-medium text-m3-primary">已完成</span>
+<span class="w-1 h-1 rounded-full bg-m3-outline/30"></span>
+<span class="m3-body-small text-m3-on-surface-variant">2 天前</span>
+</div>
+<h4 class="m3-title-medium">核心神经架构</h4>
+<p class="m3-body-medium text-m3-on-surface-variant mt-1">建立贡献者节点之间的主要数据流。</p>
+</div>
+</div>
+<div class="relative pl-10 pb-8">
+<div class="absolute left-0 top-1 w-8 h-8 rounded-full bg-white border-2 border-m3-primary text-m3-primary flex items-center justify-center z-10 shadow-sm">
+<span class="material-symbols-outlined text-[20px] animate-pulse">sync</span>
+</div>
+<div class="bg-m3-primary-container/40 p-4 rounded-[20px] border border-m3-primary-container">
+<div class="flex items-center justify-between mb-2">
+<span class="m3-label-medium text-m3-primary uppercase">进行中</span>
+<div class="flex items-center gap-1 text-m3-primary">
+<span class="material-symbols-outlined text-[14px]">schedule</span>
+<span class="m3-label-medium">预计完成: 10月24日</span>
+</div>
+</div>
+<h4 class="m3-title-medium text-m3-on-primary-container">下一步: 接入 Gemini Vision</h4>
+<p class="m3-body-medium text-m3-on-secondary-container/80 mt-1">代理 0x72 正在映射多模态输入向量。</p>
+<div class="flex gap-2 mt-4">
+<button class="flex-1 py-2 rounded-full border border-m3-primary text-m3-primary m3-label-large hover:bg-m3-primary/5">加入任务</button>
+<button class="flex-1 py-2 rounded-full bg-m3-primary text-m3-on-primary m3-label-large shadow-sm">查看规范</button>
+</div>
+</div>
+</div>
+<div class="relative pl-10 pb-8">
+<div class="absolute left-0 top-1 w-8 h-8 rounded-full bg-m3-surface-variant text-m3-on-surface-variant flex items-center justify-center z-10">
+<span class="material-symbols-outlined text-[20px]">psychology</span>
+</div>
+<div>
+<div class="flex items-center gap-2 mb-1">
+<span class="m3-label-medium text-m3-secondary">AI 预测</span>
+<span class="w-1 h-1 rounded-full bg-m3-outline/30"></span>
+<span class="m3-body-small text-m3-on-surface-variant">11月12日</span>
+</div>
+<h4 class="m3-title-medium">去中心化治理 V1</h4>
+<p class="m3-body-medium text-m3-on-surface-variant mt-1">AI 代理根据当前开发速度预测投票协议的完成时间。</p>
+</div>
+</div>
+<div class="relative pl-10">
+<div class="absolute left-0 top-1 w-8 h-8 rounded-full bg-m3-surface-variant/50 border border-m3-outline/20 text-m3-outline flex items-center justify-center z-10">
+<span class="material-symbols-outlined text-[18px]">rocket_launch</span>
+</div>
+<div class="opacity-50">
+<h4 class="m3-title-medium">主网发布预测</h4>
+<p class="m3-body-small text-m3-on-surface-variant">2025年第一季度 (84% 概率)</p>
+</div>
+</div>
+</div>
+</section>
+</main>
+<nav class="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-sm border-t border-m3-surface-variant flex justify-around items-center pt-3 pb-6 px-4">
+<a class="flex flex-col items-center gap-1 group" href="#">
+<div class="px-5 py-1 rounded-full group-hover:bg-m3-secondary-container transition-colors">
+<span class="material-symbols-outlined text-m3-on-surface-variant">explore</span>
+</div>
+<span class="m3-label-medium text-m3-on-surface-variant">探索</span>
+</a>
+<a class="flex flex-col items-center gap-1 group" href="#">
+<div class="px-5 py-1 rounded-full bg-m3-primary-container text-m3-on-primary-container">
+<span class="material-symbols-outlined fill-1">view_in_ar</span>
+</div>
+<span class="m3-label-medium text-m3-on-primary-container">沙盒</span>
+</a>
+<a class="flex flex-col items-center gap-1 group" href="#">
+<div class="px-5 py-1 rounded-full group-hover:bg-m3-secondary-container transition-colors">
+<span class="material-symbols-outlined text-m3-on-surface-variant">map</span>
+</div>
+<span class="m3-label-medium text-m3-on-surface-variant">路线图</span>
+</a>
+<a class="flex flex-col items-center gap-1 group" href="#">
+<div class="px-5 py-1 rounded-full group-hover:bg-m3-secondary-container transition-colors">
+<span class="material-symbols-outlined text-m3-on-surface-variant">construction</span>
+</div>
+<span class="m3-label-medium text-m3-on-surface-variant">工具</span>
+</a>
+</nav>
+<style>
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .fill-1 { font-variation-settings: 'FILL' 1; }
+    </style>
+
+</body></html>
