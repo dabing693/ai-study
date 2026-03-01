@@ -1,0 +1,48 @@
+🚀 Ideator 平台前端开发说明文档 (v1.0)
+1. 全局设计规范 (UI/UX Foundation)
+设计系统: 严格遵循 Material Design 3 (M3) 规范。
+字体: 中文使用 Noto Sans SC，英文/数字使用 Roboto。
+配色方案 (Tonal Palettes):
+Primary: #6750A4 (深紫) - 用于核心操作（申请加入、发送、FAB）。
+Surface: #F7F2FA (淡灰/浅紫) - 用于背景和卡片。
+Secondary: #625B71 - 用于标签、辅助信息。
+国际化 (i18n):
+默认使用 react-i18n 或类似框架。
+所有文案硬编码必须抽离至 locales/zh.json 和 locales/en.json。
+点击顶部 IconButton 或 Chip 实时切换全局 Context。
+2. 核心页面功能拆解 (Screen Implementation)
+A. 创意发现流 (Discovery Feed)
+组件结构:
+TopAppBar: 包含搜索框、语言切换 Chip、个人头像。
+Masonry Grid / List: 展示创意卡片 (M3 Elevated Card)。
+数据模型:
+IdeaCard: { id, title, description, tags[], contributorCount, isAnonymous: true }
+交互: 点击“申请加入”弹出 M3 Basic Dialog，提示用户填写简短申请（或 Agent 自动初筛）。
+B. 项目工作台 (Project Workspace)
+导航: 使用 M3 Navigation Bar (底部) 或 Navigation Rail (侧边)。
+标签页 (Tabs):
+概览: 展示项目 README.md（由 AI 动态渲染）。
+代码: 集成简版 Monaco Editor 或只读代码视图。
+FAB (悬浮按钮): 快速触发“上传文档”或“新建灵感片段”。
+C. AI 混合协作脉搏 (Pulse Feed)
+对话流逻辑:
+用户消息：靠右显示，紫色气泡。
+Agent 消息：靠左显示，灰色/深蓝色气泡，带有“AI”标识。
+Agent 状态集成:
+当 Gemini CLI 部署或 ClaudeCode 分析时，在对话流顶部插入 Linear Progress Indicator。
+Code Snippet: 消息内嵌代码高亮组件（带有一键复制）。
+D. 实时沙盒与 AI 路线图 (Sandbox & Roadmap)
+实时沙盒: IFrame 容器，加载项目的预览地址。
+AI 路线图:
+使用 M3 Timeline 列表。
+预测逻辑: 标记为“AI Predicted”的节点需使用虚线边框或半透明效果，区别于已完成的实线节点。
+3. Agent 与 技术栈建议 (Tech Stack & Integration)
+前端框架: Flutter (移动端原生感最强) 或 React + MUI (Web 端首选)。
+AI 接入层 (Backend-for-Frontend):
+ClaudeCode: 通过 Anthropic SDK 处理复杂的代码重构建议和文档编写。
+Gemini CLI: 利用 Google Generative AI SDK 处理自动化部署预测、路线图生成和多模态理解。
+匿名机制: 后端生成随机的 Ghost ID（如：Anonymous Owl），用户真实身份仅在 Ideator 确认后对该项目成员可见。
+4. 开发优先级 (Roadmap)
+MVP 阶段: 实现匿名 Feed 流和 Material 3 基础 UI 框架。
+协作阶段: 开发 Project Pulse (聊天流) 和基本的文档共享。
+智能阶段: 接入 Gemini/Claude API，实现 AI 自动更新路线图和代码分析。
