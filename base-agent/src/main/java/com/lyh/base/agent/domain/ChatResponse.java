@@ -1,5 +1,6 @@
 package com.lyh.base.agent.domain;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.lyh.base.agent.domain.message.AssistantMessage;
 import lombok.Data;
@@ -13,18 +14,19 @@ import java.util.Optional;
  * @author lengYinHui
  * @date 2026/2/2
  */
+@Data
 public class ChatResponse {
-    public List<Choice> choices;
+    private List<Choice> choices;
     /**
      * 时间戳通常使用 long类型
      */
-    public long created;
-    public String id;
-    public String model;
-    public String object;
+    private long created;
+    private String id;
+    private String model;
+    private String object;
     @JsonProperty(value = "request_id")
-    public String requestId;
-    public Usage usage;
+    private String requestId;
+    private Usage usage;
 
     /**
      * 选择结果
@@ -40,6 +42,7 @@ public class ChatResponse {
     /**
      * Token消耗情况
      */
+    @Data
     public static class Usage {
         @JsonProperty(value = "completion_tokens")
         public int completionTokens;
@@ -53,6 +56,7 @@ public class ChatResponse {
         return !CollectionUtils.isEmpty(getToolCalls());
     }
 
+    @JsonIgnore
     public List<AssistantMessage.ToolCall> getToolCalls() {
         return Optional.ofNullable(this.choices)
                 .filter(it -> !CollectionUtils.isEmpty(it))
@@ -62,6 +66,7 @@ public class ChatResponse {
                 .orElse(new ArrayList<>());
     }
 
+    @JsonIgnore
     public AssistantMessage getMessage() {
         return Optional.ofNullable(this.choices)
                 .filter(it -> !CollectionUtils.isEmpty(it))
@@ -70,6 +75,7 @@ public class ChatResponse {
                 .orElse(null);
     }
 
+    @JsonIgnore
     public String getReply() {
         return Optional.ofNullable(this.choices)
                 .filter(it -> !CollectionUtils.isEmpty(it))

@@ -8,6 +8,7 @@ import com.lyh.base.agent.domain.message.AssistantMessage;
 import com.lyh.base.agent.domain.message.Message;
 import com.lyh.base.agent.model.chat.ChatModel;
 import com.lyh.base.agent.model.chat.property.ChatModelProperty;
+import com.lyh.base.agent.observation.LangfuseObserver;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpEntity;
@@ -43,6 +44,7 @@ public class ZhiPuChatModel extends ChatModel {
         super(chatModelProperty, restTemplate);
     }
 
+    @LangfuseObserver
     @Override
     public ChatResponse call(List<Message> messages, List<FunctionTool> tools) {
         //构造对话请求

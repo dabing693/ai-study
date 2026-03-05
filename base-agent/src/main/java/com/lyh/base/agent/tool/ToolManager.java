@@ -4,6 +4,7 @@ import com.alibaba.fastjson2.JSONObject;
 import com.lyh.base.agent.domain.FunctionTool;
 import com.lyh.base.agent.domain.message.AssistantMessage;
 import com.lyh.base.agent.domain.message.ToolMessage;
+import com.lyh.base.agent.observation.LangfuseObserver;
 import lombok.extern.slf4j.Slf4j;
 
 import java.lang.reflect.InvocationTargetException;
@@ -28,6 +29,7 @@ public class ToolManager {
         return toolBuilder.getTools();
     }
 
+    @LangfuseObserver
     public ToolMessage invoke(AssistantMessage.ToolCall toolCall) {
         AssistantMessage.ToolCall.Function function = toolCall.getFunction();
         log.info("\n调用工具：{}，参数：{}", function.getName(), function.getArguments());

@@ -1,5 +1,6 @@
 package com.lyh.base.agent.define;
 
+import com.lyh.base.agent.observation.LangfuseTracer;
 import com.lyh.base.agent.domain.ChatResponse;
 import com.lyh.base.agent.domain.StreamChatResult;
 import com.lyh.base.agent.domain.StreamEvent;
@@ -33,6 +34,7 @@ public abstract class ReActAgent extends BaseAgent implements StreamableAgent {
 
     private static final int MAX_LOOP_NUM = 10;
 
+    @LangfuseTracer
     @Override
     public ChatResponse chat(String query) {
         List<Message> messageList = sense(query);
