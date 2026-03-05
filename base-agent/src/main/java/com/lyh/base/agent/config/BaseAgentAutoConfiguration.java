@@ -5,6 +5,7 @@ import com.lyh.base.agent.observation.LangfuseConfig;
 import com.lyh.base.agent.observation.LangfuseOpenTelemetryService;
 import com.lyh.base.agent.observation.LangfuseTraceAspect;
 import com.lyh.base.agent.observation.LangfuseTraceService;
+import com.lyh.base.agent.tool.ToolInvoker;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
@@ -16,6 +17,7 @@ import org.springframework.context.annotation.Import;
         LangfuseTraceAspect.class,
         LangfuseTraceService.class,
         LangfuseOpenTelemetryService.class,
+        ToolInvoker.class,
         SpringContext.class,
         MemoryConfig.class,
         MilvusConfig.class,
