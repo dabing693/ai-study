@@ -11,6 +11,7 @@ import com.lyh.base.agent.skills.SkillsLoader;
 import com.lyh.base.agent.tool.ToolBuilder;
 import com.lyh.base.agent.tool.ToolInvoker;
 import com.lyh.base.agent.tool.ToolManager;
+import com.lyh.base.agent.memory.MemoryManager;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
@@ -38,8 +39,9 @@ import org.springframework.context.annotation.Import;
 public class BaseAgentAutoConfiguration {
     @Bean
     public SkillInvoker skillInvoker(ChatModel chatModel,
-                                      ToolBuilder skillsLoader) {
+            ToolBuilder skillsLoader,
+            MemoryManager memoryManager) {
         ToolManager toolManager = skillsLoader.buildToolManager();
-        return new SkillInvoker(chatModel, toolManager);
+        return new SkillInvoker(chatModel, toolManager, memoryManager);
     }
 }
