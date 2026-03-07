@@ -45,7 +45,7 @@ public abstract class ReActAgent extends BaseAgent implements StreamableAgent {
             addAndSave(messageList, planResponse.getMessage());
             if (planResponse.hasToolCalls()) {
                 //行动，获得tool消息
-                List<Message> toolMessages = action(planResponse.getToolCalls());
+                List<Message> toolMessages = action(query, planResponse.getToolCalls());
                 //添加工具消息
                 addAndSave(messageList, toolMessages);
             } else {
@@ -71,7 +71,7 @@ public abstract class ReActAgent extends BaseAgent implements StreamableAgent {
                 // 发送 tool_calls 信息作为 assistant 消息的一部分
                 for (AssistantMessage.ToolCall toolCall : streamResult.getToolCalls()) {
                     // 调用工具
-                    ToolMessage toolMessage = toolManager.invoke(toolCall);
+                    ToolMessage toolMessage = toolManager.invoke(query, toolCall);
                     if (toolMessage != null) {
                         addAndSave(messageList, toolMessage);
                         //推送工具执行结果
@@ -120,10 +120,10 @@ public abstract class ReActAgent extends BaseAgent implements StreamableAgent {
      * @return
      */
     @Override
-    public List<Message> action(List<AssistantMessage.ToolCall> toolCalls) {
+    public List<Message> action(String query, List<AssistantMessage.ToolCall> toolCalls) {
         List<Message> toolMessageList = new ArrayList<>();
         for (AssistantMessage.ToolCall toolCall : toolCalls) {
-            ToolMessage toolMessage = toolManager.invoke(toolCall);
+            ToolMessage toolMessage = toolManager.invoke(query, toolCall);
             //添加工具调用的tool消息
             toolMessageList.add(toolMessage);
         }

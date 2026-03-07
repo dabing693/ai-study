@@ -7,6 +7,7 @@ import com.lyh.base.agent.domain.StreamEvent;
 import com.lyh.base.agent.domain.message.AssistantMessage;
 import com.lyh.base.agent.domain.message.Message;
 import com.lyh.base.agent.domain.message.ToolMessage;
+import com.lyh.base.agent.domain.message.UserMessage;
 import com.lyh.base.agent.memory.MemoryManager;
 import com.lyh.base.agent.model.chat.ChatModel;
 import com.lyh.base.agent.tool.ToolManager;
@@ -78,9 +79,10 @@ public class ReactiveReActAgent extends ReActAgent {
             addAndSave(messageList, assistantMessage);
 
             if (streamResult.hasToolCalls()) {
+                String query = lastUserQuery(messageList);
                 // 处理工具调用
                 for (AssistantMessage.ToolCall toolCall : streamResult.getToolCalls()) {
-                    ToolMessage toolMessage = toolManager.invoke(toolCall);
+                    ToolMessage toolMessage = toolManager.invoke(query, toolCall);
                     if (toolMessage != null) {
                         addAndSave(messageList, toolMessage);
                         sink.next(StreamEvent.toolResult(toolMessage));
@@ -100,6 +102,15 @@ public class ReactiveReActAgent extends ReActAgent {
             }
             return Flux.<StreamEvent>empty();
         }));
+    }
+
+    private String lastUserQuery(List<Message> messageList) {
+        for (Message message : messageList) {
+            if (message instanceof UserMessage) {
+                return message.getContent();
+            }
+        }
+        return null;
     }
 
     /**

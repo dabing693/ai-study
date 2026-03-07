@@ -3,6 +3,8 @@ package com.lyh.base.agent.tool;
 import com.lyh.base.agent.annotation.Tool;
 import com.lyh.base.agent.annotation.ToolParam;
 import com.lyh.base.agent.domain.FunctionTool;
+import com.lyh.base.agent.skills.SkillsLoader;
+import com.lyh.base.agent.skills.model.Skill;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import org.springframework.core.StandardReflectionParameterNameDiscoverer;
@@ -23,10 +25,23 @@ public class ToolBuilder {
     private final List<FunctionTool> tools;
     //存放实际工具调用时的元数据
     private final ConcurrentHashMap<String, ToolCallBack> toolCallBacks = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, Skill> skillSet = new ConcurrentHashMap<>();
 
     public ToolBuilder(Object... toolObjects) {
         this.toolObjects = Arrays.asList(toolObjects);
         this.tools = initTools();
+    }
+
+    public ToolBuilder(SkillsLoader skillsLoader, Object... toolObjects) {
+        this.toolObjects = Arrays.asList(toolObjects);
+        this.tools = initTools();
+        //技能初始化
+        List<Skill> skills = skillsLoader.loadOnce();
+        this.tools.addAll(trans2FunctionTool(skills));
+
+        for (Skill skill : skills) {
+            this.skillSet.put(skill.getName(), skill);
+        }
     }
 
     public ToolManager buildToolManager() {
@@ -39,6 +54,30 @@ public class ToolBuilder {
 
     public ConcurrentHashMap<String, ToolCallBack> getToolCallBacks() {
         return toolCallBacks;
+    }
+
+    public boolean containsSkill(String skill) {
+        return skillSet.containsKey(skill);
+    }
+
+    public Skill getSkill(String skill) {
+        return skillSet.get(skill);
+    }
+
+    /**
+     * 把skills加载为模型api的tool
+     *
+     * @return
+     */
+    public List<FunctionTool> trans2FunctionTool(List<Skill> skills) {
+        List<FunctionTool> functionTools = new ArrayList<>();
+        for (Skill skill : skills) {
+            FunctionTool.Function function = new FunctionTool.Function();
+            function.setName(skill.getName());
+            function.setDescription(skill.getDescription());
+            functionTools.add(new FunctionTool(function));
+        }
+        return functionTools;
     }
 
     private List<FunctionTool> initTools() {

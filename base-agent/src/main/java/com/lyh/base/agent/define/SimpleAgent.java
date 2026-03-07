@@ -39,7 +39,7 @@ public abstract class SimpleAgent extends BaseAgent {
     }
 
     @Override
-    public List<Message> action(List<AssistantMessage.ToolCall> toolCalls) {
+    public List<Message> action(String query, List<AssistantMessage.ToolCall> toolCalls) {
         return null;
     }
 }

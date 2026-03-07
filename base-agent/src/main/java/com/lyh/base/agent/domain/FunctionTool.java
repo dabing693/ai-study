@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.lyh.base.agent.enums.ToolType;
 import lombok.Data;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 
@@ -27,13 +28,18 @@ public class FunctionTool {
     public static class Function {
         private String name;
         private String description;
-        private Parameters parameters;
+        private Parameters parameters = new Parameters();
 
         @Data
         public static class Parameters {
             private final String type = "object";
             private LinkedHashMap<String, Property> properties;
             private List<String> required;
+
+            public Parameters() {
+                this.properties = new LinkedHashMap<>();
+                this.required = new ArrayList<>();
+            }
 
             public Parameters(LinkedHashMap<String, Property> properties, List<String> required) {
                 this.properties = properties;

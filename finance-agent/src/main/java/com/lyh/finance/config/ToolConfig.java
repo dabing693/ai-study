@@ -1,5 +1,6 @@
 package com.lyh.finance.config;
 
+import com.lyh.base.agent.skills.SkillsLoader;
 import com.lyh.base.agent.tool.ToolBuilder;
 import com.lyh.finance.tools.*;
 import org.springframework.context.annotation.Bean;
@@ -15,6 +16,7 @@ import org.springframework.stereotype.Component;
 public class ToolConfig {
     @Bean
     public ToolBuilder financeExpertAgentTools(
+            SkillsLoader skillsLoader,
             DateTimeTool dateTimeTool,
             AccountTool accountTool,
             StockTool stockTool,
@@ -22,7 +24,7 @@ public class ToolConfig {
             SearchTool searchTool,
             AkShareTool akShareTool
     ) {
-        return new ToolBuilder(dateTimeTool, accountTool, stockTool, fundTool, searchTool, akShareTool);
+        return new ToolBuilder(skillsLoader, dateTimeTool, accountTool, stockTool, fundTool, searchTool, akShareTool);
     }
 
     @Bean

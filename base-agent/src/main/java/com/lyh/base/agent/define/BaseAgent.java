@@ -39,7 +39,7 @@ public abstract class BaseAgent {
 
     public abstract ChatResponse plan(List<Message> messageList);
 
-    public abstract List<Message> action(List<AssistantMessage.ToolCall> toolCalls);
+    public abstract List<Message> action(String query, List<AssistantMessage.ToolCall> toolCalls);
 
     public SystemMessage systemMessage() {
         try {
