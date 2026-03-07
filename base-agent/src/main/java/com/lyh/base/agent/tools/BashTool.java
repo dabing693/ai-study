@@ -10,7 +10,7 @@ import java.util.concurrent.TimeUnit;
 
 public class BashTool {
 
-    @Tool(name = "bash", description = "Run a shell command on the local machine. Use this to execute bash or terminal commands, such as 'python -m markitdown ...', 'dir', 'type', etc. Input is the exact bash/cmd command string. Note that the OS is Windows.")
+    @Tool(name = "bash", description = "Run a shell command on the local machine. Use this to execute bash or terminal commands, such as 'dir', 'type', etc. Input is the exact bash/cmd command string. Note that the OS is Windows. DO NOT use this to run 'python' or 'python -m' commands. For any Python execution, write equivalent Python code and use the 'python_repl' tool instead.")
     public String run(@ToolParam(description = "The terminal command to run") String command) {
         try {
             Process process = new ProcessBuilder("cmd.exe", "/c", command).start();

@@ -18,10 +18,8 @@ public class PythonREPLToolAdapter {
         this.replTool = new AdvancedPythonREPLTool(timeoutSeconds);
     }
 
-    @Tool(
-            name = "python_repl",
-            description = "A Python shell. Use this to execute python commands. Input should be a valid python command. If you expect output it should be printed out."
-    )
+    @Tool(name = "python_repl",
+            description = "A Python shell. Use this to execute python commands. Input should be a valid python code snippet. If you expect output it should be printed out. DO NOT try to run bash commands like 'python -m markitdown', Instead, use this tool.")
     public String run(String input) {
         try {
             return replTool.run(input);

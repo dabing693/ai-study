@@ -12,11 +12,13 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
 import java.util.ArrayList;
+
 import com.lyh.base.agent.define.ReActAgent;
 import com.lyh.base.agent.domain.message.Message;
 import com.lyh.base.agent.memory.MemoryManager;
 import com.lyh.base.agent.define.ReActAgent;
 import com.lyh.base.agent.domain.FunctionTool;
+
 import java.util.stream.Collectors;
 
 /*
@@ -37,7 +39,7 @@ public class SkillInvoker {
 
     public ChatResponse chat(String query, String skillName) {
         Skill skill = toolManager.getSkill(skillName);
-        SystemMessage systemMessage = new SystemMessage(skill.getContent());
+        SystemMessage systemMessage = systemMessage(skill);
 
         ReActAgent subAgent = new ReActAgent(chatModel, memoryManager, toolManager) {
             @Override
@@ -55,7 +57,7 @@ public class SkillInvoker {
 
             @Override
             protected void addAndSave(List<Message> messages,
-                    List<Message> newMessages) {
+                                      List<Message> newMessages) {
                 if (newMessages != null && !newMessages.isEmpty()) {
                     messages.addAll(newMessages);
                 }
@@ -71,5 +73,15 @@ public class SkillInvoker {
         };
 
         return subAgent.chat(query);
+    }
+
+    private static final String system_prompt_prefix = """
+            # Role
+            You are very skilled at using the following skills, and you need to accurately use the skills below to solve user problems.
+            
+            """;
+
+    private SystemMessage systemMessage(Skill skill) {
+        return new SystemMessage(system_prompt_prefix + skill.getContent());
     }
 }
