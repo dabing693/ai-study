@@ -1,0 +1,206 @@
+package com.lyh.base.agent.model.chat.impl;
+
+import com.alibaba.fastjson2.JSONArray;
+import com.alibaba.fastjson2.JSONObject;
+import com.alibaba.fastjson2.annotation.JSONField;
+import com.lyh.base.agent.domain.*;
+import com.lyh.base.agent.domain.message.AssistantMessage;
+import com.lyh.base.agent.domain.message.Message;
+import com.lyh.base.agent.model.chat.ChatModel;
+import com.lyh.base.agent.model.chat.property.ChatModelProperty;
+import com.lyh.base.agent.observation.LangfuseObserver;
+import lombok.Data;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.util.CollectionUtils;
+import org.springframework.util.StringUtils;
+import org.springframework.web.client.RestTemplate;
+
+import java.io.IOException;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
+import java.util.function.Consumer;
+
+/**
+ * IflowChatModel调用具体实现
+ */
+@Slf4j
+public class IflowChatModel extends ChatModel {
+
+    public IflowChatModel(ChatModelProperty chatModelProperty,
+                          RestTemplate restTemplate) {
+        super(chatModelProperty, restTemplate);
+    }
+
+    @LangfuseObserver
+    @Override
+    public ChatResponse call(List<Message> messages, List<FunctionTool> tools) {
+        // 构造对话请求
+        ChatRequest request = new ChatRequest();
+        request.setMessages(messages);
+        request.setModel(chatModelProperty.getModelName());
+        request.setEnableThinking(chatModelProperty.getEnableThinking());
+        if (!CollectionUtils.isEmpty(tools)) {
+            request.setTools(tools);
+        }
+        // 调用模型
+        return call(request);
+    }
+
+    @Override
+    public StreamChatResult stream(List<Message> messages,
+                                   List<FunctionTool> tools,
+                                   Consumer<StreamEvent> eventConsumer) {
+        ChatRequest request = new ChatRequest();
+        request.setMessages(messages);
+        request.setModel(chatModelProperty.getModelName());
+        request.setEnableThinking(chatModelProperty.getEnableThinking());
+        request.setStream(true);
+        if (!CollectionUtils.isEmpty(tools)) {
+            request.setTools(tools);
+        }
+        return streamCall(request, eventConsumer);
+    }
+
+    private ChatResponse call(ChatRequest request) {
+        HttpHeaders requestHeaders = new HttpHeaders();
+        requestHeaders.set("Authorization", "Bearer " + chatModelProperty.getApiKey());
+        log.info("Iflow Request: {}", JSONArray.toJSONString(request));
+        HttpEntity<ChatRequest> httpEntity = new HttpEntity<>(request, requestHeaders);
+        return restTemplate.postForObject(chatModelProperty.getBaseUrl(), httpEntity, ChatResponse.class);
+    }
+
+    private StreamChatResult streamCall(ChatRequest request, Consumer<StreamEvent> eventConsumer) {
+        String requestBody = JSONObject.toJSONString(request);
+        HttpRequest httpRequest = HttpRequest.newBuilder()
+                .uri(URI.create(chatModelProperty.getBaseUrl()))
+                .timeout(Duration.ofSeconds(120))
+                .header("Authorization", "Bearer " + chatModelProperty.getApiKey())
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(requestBody))
+                .build();
+
+        StringBuilder contentBuilder = new StringBuilder();
+        StringBuilder reasoningBuilder = new StringBuilder();
+        StringBuilder toolCallsBuilder = new StringBuilder();
+        try {
+            HttpClient client = HttpClient.newHttpClient();
+            HttpResponse<java.util.stream.Stream<String>> response = client.send(httpRequest,
+                    HttpResponse.BodyHandlers.ofLines());
+            response.body().forEach(line -> handleStreamLine(line, eventConsumer, contentBuilder,
+                    reasoningBuilder, toolCallsBuilder));
+        } catch (IOException | InterruptedException e) {
+            throw new RuntimeException("Iflow Stream call failed", e);
+        }
+
+        AssistantMessage message = new AssistantMessage(contentBuilder.toString());
+        if (StringUtils.hasLength(reasoningBuilder)) {
+            message.setReasoningContent(reasoningBuilder.toString());
+        }
+        if (StringUtils.hasLength(toolCallsBuilder)) {
+            String toolCallsStr = toolCallsBuilder.toString();
+            List<AssistantMessage.ToolCall> toolCalls = parseToolCalls(toolCallsStr);
+            if (!toolCalls.isEmpty()) {
+                eventConsumer.accept(StreamEvent.toolCalls(toolCalls));
+                message.setToolCalls(toolCalls);
+            }
+        }
+        StreamChatResult result = new StreamChatResult();
+        result.setMessage(message);
+        return result;
+    }
+
+    private void handleStreamLine(String line,
+                                  Consumer<StreamEvent> eventConsumer,
+                                  StringBuilder contentBuilder,
+                                  StringBuilder reasoningBuilder,
+                                  StringBuilder toolCallsBuilder) {
+        if (!StringUtils.hasLength(line)) {
+            return;
+        }
+        String payload = line.trim();
+        if (payload.startsWith(PAYLOAD_PREFIX)) {
+            payload = payload.substring(PAYLOAD_PREFIX.length()).trim();
+        }
+        if (!StringUtils.hasLength(payload) || PAYLOAD_END.equals(payload)) {
+            return;
+        }
+        StreamPayload streamPayload;
+        try {
+            streamPayload = JSONObject.parseObject(payload, StreamPayload.class);
+        } catch (Exception ex) {
+            return;
+        }
+        StreamPayload.Choice.Delta delta = Optional.ofNullable(streamPayload)
+                .map(StreamPayload::getChoices)
+                .orElse(Collections.emptyList())
+                .stream()
+                .findFirst()
+                .map(choice -> choice.getDelta() != null ? choice.getDelta() : choice.getMessage())
+                .orElse(null);
+        if (delta == null) {
+            return;
+        }
+
+        String deltaReasoning = Optional.ofNullable(delta.getReasoningContent()).orElse("");
+        if (StringUtils.hasLength(deltaReasoning)) {
+            reasoningBuilder.append(deltaReasoning);
+            eventConsumer.accept(StreamEvent.reasoningDelta(deltaReasoning));
+        }
+        String deltaContent = Optional.ofNullable(delta.getContent()).orElse("");
+        if (StringUtils.hasLength(deltaContent)) {
+            contentBuilder.append(deltaContent);
+            eventConsumer.accept(StreamEvent.delta(deltaContent));
+        }
+        String toolCalls = delta.getToolCalls();
+        if (toolCalls != null && !toolCalls.isEmpty()) {
+            toolCallsBuilder.append(toolCalls);
+        }
+    }
+
+    private List<AssistantMessage.ToolCall> parseToolCalls(String toolCallsStr) {
+        List<AssistantMessage.ToolCall> result = new ArrayList<>();
+        if (!StringUtils.hasLength(toolCallsStr)) {
+            return result;
+        }
+        try {
+            result = JSONArray.parseArray(toolCallsStr, AssistantMessage.ToolCall.class);
+        } catch (Exception e) {
+            String normalized = toolCallsStr.replaceAll("\\]\\s*\\[", ",");
+            try {
+                result = JSONArray.parseArray(normalized, AssistantMessage.ToolCall.class);
+            } catch (Exception ex) {
+                log.warn("Failed to parse tool_calls in Iflow: {}", toolCallsStr, ex);
+            }
+        }
+        return result;
+    }
+
+    @Data
+    private static class StreamPayload {
+        private List<Choice> choices;
+
+        @Data
+        private static class Choice {
+            private Delta delta;
+            private Delta message;
+
+            @Data
+            private static class Delta {
+                private String content;
+                @JSONField(name = "reasoning_content")
+                private String reasoningContent;
+                @JSONField(name = "tool_calls")
+                private String toolCalls;
+            }
+        }
+    }
+}

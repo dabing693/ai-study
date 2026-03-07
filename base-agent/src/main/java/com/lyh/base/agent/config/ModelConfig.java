@@ -2,7 +2,9 @@ package com.lyh.base.agent.config;
 
 import com.lyh.base.agent.model.chat.ChatModel;
 import com.lyh.base.agent.model.chat.property.ChatModelProperty;
+import com.lyh.base.agent.model.chat.property.IflowChatModelProperty;
 import com.lyh.base.agent.model.chat.property.ZhiPuChatModelProperty;
+import com.lyh.base.agent.model.chat.impl.IflowChatModel;
 import com.lyh.base.agent.model.chat.impl.ZhiPuChatModel;
 import com.lyh.base.agent.model.embedding.EmbeddingModel;
 import com.lyh.base.agent.model.embedding.impl.GeminiEmbeddingModel;
@@ -21,18 +23,26 @@ import org.springframework.web.client.RestTemplate;
  * @date 2026/2/5
  */
 @EnableConfigurationProperties({ZhiPuChatModelProperty.class,
+        IflowChatModelProperty.class,
         EmbeddingModelProperty.class,
         GeminiEmbeddingModelProperty.class,
         OllamaEmbeddingModelProperty.class
 })
 @Configuration
 public class ModelConfig {
+
     @Bean
     @ConditionalOnProperty(prefix = "model.zhipu", name = "api-key")
-    public ChatModel chatModel(ChatModelProperty chatModelProperty,
-                               RestTemplate restTemplate
-    ) {
+    public ChatModel zhiPuChatModel(ZhiPuChatModelProperty chatModelProperty,
+                                    RestTemplate restTemplate) {
         return new ZhiPuChatModel(chatModelProperty, restTemplate);
+    }
+
+    @Bean
+    @ConditionalOnProperty(prefix = "model.iflow", name = "api-key")
+    public ChatModel iflowChatModel(IflowChatModelProperty chatModelProperty,
+                                    RestTemplate restTemplate) {
+        return new IflowChatModel(chatModelProperty, restTemplate);
     }
 
     @Bean
