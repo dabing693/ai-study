@@ -132,18 +132,39 @@ const chatList = ref(null);
 const scrollAnchor = ref(null);
 const parentConversationId = ref("");
 const textareaRef = ref(null);
-const selectedAgent = ref("总结报告Agent");
+const selectedAgent = ref("规划总指挥Agent");
 let sseController = null;
 let resizeObserver = null;
 const streamingActive = ref(false);
 
-const agentList = [
+// 预置的专业 Agent 列表，用于 UI 显示（实际上会根据后端推送动态增加）
+const staticAgentList = [
+  { name: "规划总指挥Agent", description: "负责接收用户查询并且动态调度各个专业Agent得出核心结论" },
   { name: "技术分析Agent", description: "负责分析股票的技术面：K线、技术指标、趋势等" },
   { name: "基本面分析Agent", description: "负责分析股票的基本面：财报、估值、成长性等" },
   { name: "市场情绪Agent", description: "负责分析市场情绪：新闻、舆情、资金流向等" },
   { name: "风险评估Agent", description: "负责基于前面的分析结果进行风险评估" },
   { name: "总结报告Agent", description: "负责整合所有分析结果，生成最终报告" },
 ];
+
+const agentList = computed(() => {
+  // 合并预置列表和运行中动态出现的列表
+  const dynamicNames = Object.keys(agentData.value);
+  const list = [...staticAgentList];
+  
+  dynamicNames.forEach(name => {
+    if (!list.find(a => a.name === name)) {
+      list.push({ name, description: "动态调度的子 Agent" });
+    }
+  });
+  
+  // 过滤掉没出现在 agentData 中且不是总指挥的（如果还没开始）
+  if (Object.keys(agentData.value).length === 0) {
+      return [list[0]]; // 只显示总指挥
+  }
+  
+  return list.filter(a => agentData.value[a.name] || a.name === "规划总指挥Agent");
+});
 
 const agentData = ref({});
 
@@ -328,14 +349,15 @@ const parseSseStream = async (response, onEvent) => {
 };
 
 const initAgentData = () => {
-  agentList.forEach((agent) => {
-    agentData.value[agent.name] = {
-      conversationId: "",
-      messages: [],
-      status: "pending",
-      streaming: false,
-    };
-  });
+  agentData.value = {};
+  // 必须初始化总指挥，因为她是入口
+  agentData.value["规划总指挥Agent"] = {
+    conversationId: "",
+    messages: [],
+    status: "pending",
+    streaming: false,
+  };
+  selectedAgent.value = "规划总指挥Agent";
 };
 
 const sendMessage = async () => {
@@ -668,9 +690,18 @@ watch(
   }
 );
 
+const setAnalyzeContent = (content) => {
+  input.value = content;
+  nextTick(() => {
+    adjustTextareaHeight();
+    textareaRef.value?.focus();
+  });
+};
+
 defineExpose({
   newConversation,
   loadConversation,
+  setAnalyzeContent,
 });
 </script>
 

@@ -189,16 +189,49 @@ public class ZhiPuChatModel extends ChatModel {
         if (!StringUtils.hasLength(toolCallsStr)) {
             return result;
         }
+        // 流式 tool_calls 是多段 JSON 数组拼接而来，形如: [{index:0,...}][{index:0,...}][{index:0,...}]
+        // 需要先合并为一个数组，再按 index 分组合并 name 和 arguments
+        String normalized = toolCallsStr.replaceAll("\\]\\s*\\[", ",");
+        List<AssistantMessage.ToolCall> rawCalls;
         try {
-            result = JSONArray.parseArray(toolCallsStr, AssistantMessage.ToolCall.class);
+            rawCalls = JSONArray.parseArray(normalized, AssistantMessage.ToolCall.class);
         } catch (Exception e) {
-            String normalized = toolCallsStr.replaceAll("\\]\\s*\\[", ",");
-            try {
-                result = JSONArray.parseArray(normalized, AssistantMessage.ToolCall.class);
-            } catch (Exception ex) {
-                log.warn("Failed to parse tool_calls: {}", toolCallsStr, ex);
+            log.warn("Failed to parse tool_calls: {}", toolCallsStr, e);
+            return result;
+        }
+        // 按 index 分组，合并增量 function.name 和 function.arguments
+        Map<Integer, AssistantMessage.ToolCall> mergedMap = new LinkedHashMap<>();
+        for (AssistantMessage.ToolCall raw : rawCalls) {
+            int idx = raw.getIndex() != null ? raw.getIndex() : 0;
+            AssistantMessage.ToolCall merged = mergedMap.get(idx);
+            if (merged == null) {
+                // 首次出现此 index，直接放入（注意 arguments 可能为空片段）
+                merged = new AssistantMessage.ToolCall();
+                merged.setIndex(idx);
+                merged.setId(raw.getId());
+                merged.setType(raw.getType());
+                AssistantMessage.ToolCall.Function fn = new AssistantMessage.ToolCall.Function();
+                fn.setName(raw.getFunction() != null ? Optional.ofNullable(raw.getFunction().getName()).orElse("") : "");
+                fn.setArguments(raw.getFunction() != null ? Optional.ofNullable(raw.getFunction().getArguments()).orElse("") : "");
+                merged.setFunction(fn);
+                mergedMap.put(idx, merged);
+            } else {
+                // 后续增量：合并 id、type、name、arguments
+                if (raw.getId() != null && merged.getId() == null) {
+                    merged.setId(raw.getId());
+                }
+                if (raw.getType() != null && merged.getType() == null) {
+                    merged.setType(raw.getType());
+                }
+                if (raw.getFunction() != null) {
+                    String nameChunk = Optional.ofNullable(raw.getFunction().getName()).orElse("");
+                    String argsChunk = Optional.ofNullable(raw.getFunction().getArguments()).orElse("");
+                    merged.getFunction().setName(merged.getFunction().getName() + nameChunk);
+                    merged.getFunction().setArguments(merged.getFunction().getArguments() + argsChunk);
+                }
             }
         }
+        result.addAll(mergedMap.values());
         return result;
     }
 

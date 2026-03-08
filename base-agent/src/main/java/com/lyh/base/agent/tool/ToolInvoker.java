@@ -34,14 +34,19 @@ public class ToolInvoker {
             return null;
         }
         //{"query":"贵州茅台最近3天利好消息"}
-        JSONObject arguments = JSONObject.parse(function.getArguments());
+        JSONObject arguments = null;
+        if (function.getArguments() != null && !function.getArguments().isBlank()) {
+            arguments = JSONObject.parse(function.getArguments());
+        }
         //模型返回的各个参数的值
         Map<String, Object> valueMap = new HashMap<>();
-        for (Map.Entry<String, Object> entry : arguments.entrySet()) {
-            String key = entry.getKey();
-            //todo 模型返回参数值的类型和实际的参数类型对齐
-            Object value = entry.getValue();
-            valueMap.put(key, value);
+        if (arguments != null) {
+            for (Map.Entry<String, Object> entry : arguments.entrySet()) {
+                String key = entry.getKey();
+                //todo 模型返回参数值的类型和实际的参数类型对齐
+                Object value = entry.getValue();
+                valueMap.put(key, value);
+            }
         }
         //真实的方法参数列表
         final LinkedHashMap<String, FunctionTool.Function.Parameters.Property> methodParams =

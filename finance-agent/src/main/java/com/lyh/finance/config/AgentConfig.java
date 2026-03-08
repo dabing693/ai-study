@@ -82,4 +82,12 @@ public class AgentConfig {
         ToolManager toolManager = summaryReportTools.buildToolManager();
         return new SummaryReportAgent(chatModel, memoryManager, toolManager);
     }
+
+    @Bean
+    public CoordinatorAgent coordinatorAgent(ChatModel chatModel,
+                                             MemoryManager memoryManager,
+                                             ToolBuilder coordinatorAgentTools) {
+        ToolManager toolManager = coordinatorAgentTools.buildToolManager();
+        return new CoordinatorAgent(chatModel, memoryManager, toolManager);
+    }
 }

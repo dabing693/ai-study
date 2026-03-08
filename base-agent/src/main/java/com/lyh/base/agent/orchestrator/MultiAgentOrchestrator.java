@@ -125,11 +125,31 @@ public class MultiAgentOrchestrator {
         return results;
     }
 
-    private AgentResult executeSingleAgent(String agentName, String input,
-                                           Consumer<AgentEvent> eventConsumer,
-                                           String agentConversationId,
-                                           String parentConversationId,
-                                           AgentConversationMappingService mappingService) {
+    public String executeDynamicConsultation(String parentConversationId,
+                                             String rootAgentName,
+                                             String query,
+                                             Consumer<AgentEvent> eventConsumer,
+                                             AgentConversationMappingService mappingService) {
+        String agentConvId = UUID.randomUUID().toString().replace("-", "");
+        if (mappingService != null && parentConversationId != null) {
+            String description = agentRegistry.getAgentDescription(rootAgentName);
+            mappingService.createMapping(parentConversationId, rootAgentName, agentConvId, description);
+        }
+        
+        OrchestrationContextHolder.setContext(new OrchestrationContext(parentConversationId, eventConsumer, mappingService));
+        try {
+            AgentResult result = executeSingleAgent(rootAgentName, query, eventConsumer, agentConvId, parentConversationId, mappingService);
+            return result.getContent();
+        } finally {
+            OrchestrationContextHolder.clear();
+        }
+    }
+
+    public AgentResult executeSingleAgent(String agentName, String input,
+                                          Consumer<AgentEvent> eventConsumer,
+                                          String agentConversationId,
+                                          String parentConversationId,
+                                          AgentConversationMappingService mappingService) {
         LocalDateTime startTime = LocalDateTime.now();
         log.info("开始执行 Agent: {}", agentName);
 
@@ -255,5 +275,29 @@ public class MultiAgentOrchestrator {
     public interface AgentConversationMappingService {
         void createMapping(String parentConversationId, String agentName, String agentConversationId, String description);
         void updateAgentStatus(String parentConversationId, String agentName, String status, LocalDateTime startTime, LocalDateTime endTime);
+    }
+
+    @lombok.Data
+    @lombok.AllArgsConstructor
+    public static class OrchestrationContext {
+        private String parentConversationId;
+        private Consumer<AgentEvent> eventConsumer;
+        private AgentConversationMappingService mappingService;
+    }
+
+    public static class OrchestrationContextHolder {
+        private static final ThreadLocal<OrchestrationContext> contextHolder = new ThreadLocal<>();
+
+        public static void setContext(OrchestrationContext context) {
+            contextHolder.set(context);
+        }
+
+        public static OrchestrationContext getContext() {
+            return contextHolder.get();
+        }
+
+        public static void clear() {
+            contextHolder.remove();
+        }
     }
 }

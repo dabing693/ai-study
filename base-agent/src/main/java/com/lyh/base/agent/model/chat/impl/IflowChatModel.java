@@ -25,7 +25,9 @@ import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.function.Consumer;
 
@@ -171,16 +173,44 @@ public class IflowChatModel extends ChatModel {
         if (!StringUtils.hasLength(toolCallsStr)) {
             return result;
         }
+        String normalized = toolCallsStr.replaceAll("\\]\\s*\\[", ",");
+        List<AssistantMessage.ToolCall> rawCalls;
         try {
-            result = JSONArray.parseArray(toolCallsStr, AssistantMessage.ToolCall.class);
+            rawCalls = JSONArray.parseArray(normalized, AssistantMessage.ToolCall.class);
         } catch (Exception e) {
-            String normalized = toolCallsStr.replaceAll("\\]\\s*\\[", ",");
-            try {
-                result = JSONArray.parseArray(normalized, AssistantMessage.ToolCall.class);
-            } catch (Exception ex) {
-                log.warn("Failed to parse tool_calls in Iflow: {}", toolCallsStr, ex);
+            log.warn("Failed to parse tool_calls in Iflow: {}", toolCallsStr, e);
+            return result;
+        }
+        Map<Integer, AssistantMessage.ToolCall> mergedMap = new LinkedHashMap<>();
+        for (AssistantMessage.ToolCall raw : rawCalls) {
+            int idx = raw.getIndex() != null ? raw.getIndex() : 0;
+            AssistantMessage.ToolCall merged = mergedMap.get(idx);
+            if (merged == null) {
+                merged = new AssistantMessage.ToolCall();
+                merged.setIndex(idx);
+                merged.setId(raw.getId());
+                merged.setType(raw.getType());
+                AssistantMessage.ToolCall.Function fn = new AssistantMessage.ToolCall.Function();
+                fn.setName(raw.getFunction() != null ? Optional.ofNullable(raw.getFunction().getName()).orElse("") : "");
+                fn.setArguments(raw.getFunction() != null ? Optional.ofNullable(raw.getFunction().getArguments()).orElse("") : "");
+                merged.setFunction(fn);
+                mergedMap.put(idx, merged);
+            } else {
+                if (raw.getId() != null && merged.getId() == null) {
+                    merged.setId(raw.getId());
+                }
+                if (raw.getType() != null && merged.getType() == null) {
+                    merged.setType(raw.getType());
+                }
+                if (raw.getFunction() != null) {
+                    String nameChunk = Optional.ofNullable(raw.getFunction().getName()).orElse("");
+                    String argsChunk = Optional.ofNullable(raw.getFunction().getArguments()).orElse("");
+                    merged.getFunction().setName(merged.getFunction().getName() + nameChunk);
+                    merged.getFunction().setArguments(merged.getFunction().getArguments() + argsChunk);
+                }
             }
         }
+        result.addAll(mergedMap.values());
         return result;
     }
 

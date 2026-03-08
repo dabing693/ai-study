@@ -73,4 +73,12 @@ public class ToolConfig {
     ) {
         return new ToolBuilder(dateTimeTool);
     }
+
+    @Bean
+    public ToolBuilder coordinatorAgentTools(
+            SubAgentInvokeTool subAgentInvokeTool,
+            DateTimeTool dateTimeTool
+    ) {
+        return new ToolBuilder(subAgentInvokeTool, dateTimeTool);
+    }
 }

@@ -56,6 +56,7 @@ public class MultiAgentController {
     private final MarketSentimentAgent marketSentimentAgent;
     private final RiskAssessmentAgent riskAssessmentAgent;
     private final SummaryReportAgent summaryReportAgent;
+    private final CoordinatorAgent coordinatorAgent;
 
     @PostConstruct
     public void agentRegistry() {
@@ -69,6 +70,8 @@ public class MultiAgentController {
                 riskAssessmentAgent, "风险评估", "仓位建议");
         agentRegistry.register("总结报告Agent", "负责整合所有分析结果，生成最终报告",
                 summaryReportAgent, "总结报告", "投资建议");
+        agentRegistry.register("规划总指挥Agent", "负责接收用户查询并且动态调度各个专业Agent得出核心结论",
+                coordinatorAgent, "核心中枢", "大脑");
     }
 
     @GetMapping(value = "/consultation/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
@@ -120,11 +123,10 @@ public class MultiAgentController {
                             }
                         };
 
-                String finalResult = multiAgentOrchestrator.executeConsultation(
+                String finalResult = multiAgentOrchestrator.executeDynamicConsultation(
                         finalConversationId,
+                        "规划总指挥Agent",
                         query,
-                        PARALLEL_AGENTS,
-                        SEQUENTIAL_AGENTS,
                         agentEvent -> {
                             try {
                                 String eventData = objectMapper.writeValueAsString(agentEvent);
@@ -136,7 +138,7 @@ public class MultiAgentController {
                         mappingService
                 );
 
-                sendEvent(emitter, "content", finalResult);
+                sendEvent(emitter, "content", finalResult != null ? finalResult : "");
                 sendEvent(emitter, "done", "会诊完成");
                 emitter.complete();
             } catch (Exception ex) {
