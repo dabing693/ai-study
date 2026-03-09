@@ -3,6 +3,10 @@ package com.lyh.finance.tools;
 import com.lyh.base.agent.annotation.Tool;
 import com.lyh.base.agent.annotation.ToolParam;
 import com.lyh.base.agent.util.MarkdownUtil;
+import com.lyh.finance.tools.akshare.StockIndividualInfoEm;
+import com.lyh.finance.tools.akshare.StockProfitSheetByReportEm;
+import com.lyh.finance.tools.akshare.StockZhAHist;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpMethod;
@@ -18,11 +22,18 @@ import java.util.Map;
 /**
  * AkShare 金融数据工具
  */
+@Slf4j
 @Service
 public class AkShareTool {
 
     @Autowired
     private RestTemplate restTemplate;
+    @Autowired
+    private StockZhAHist stockZhAHist;
+    @Autowired
+    private StockIndividualInfoEm stockIndividualInfoEm;
+    @Autowired
+    private StockProfitSheetByReportEm stockProfitSheetByReportEm;
 
     private static final String BASE_URL = "http://127.0.0.1:8089/api/public/";
 
@@ -35,7 +46,8 @@ public class AkShareTool {
         String url = BASE_URL + "stock_hot_rank_em";
         try {
             ResponseEntity<List<Map<String, Object>>> response = restTemplate.exchange(
-                    url, HttpMethod.GET, null, new ParameterizedTypeReference<List<Map<String, Object>>>() {}
+                    url, HttpMethod.GET, null, new ParameterizedTypeReference<List<Map<String, Object>>>() {
+                    }
             );
             List<Map<String, Object>> dataList = response.getBody();
             if (dataList == null || dataList.isEmpty()) return new Object[][]{};
@@ -48,7 +60,9 @@ public class AkShareTool {
                 table[i + 1] = new Object[]{item.get("当前排名"), item.get("代码"), item.get("股票名称"), item.get("最新价"), item.get("涨跌额"), item.get("涨跌幅")};
             }
             return table;
-        } catch (Exception e) { return new Object[][]{{"错误", e.getMessage()}}; }
+        } catch (Exception e) {
+            return new Object[][]{{"错误", e.getMessage()}};
+        }
     }
 
     @Tool(description = "查询当前 A 股市场最热门的行业板块（实时行业行情）")
@@ -60,7 +74,8 @@ public class AkShareTool {
         String url = BASE_URL + "stock_board_industry_name_em";
         try {
             ResponseEntity<List<Map<String, Object>>> response = restTemplate.exchange(
-                    url, HttpMethod.GET, null, new ParameterizedTypeReference<List<Map<String, Object>>>() {}
+                    url, HttpMethod.GET, null, new ParameterizedTypeReference<List<Map<String, Object>>>() {
+                    }
             );
             List<Map<String, Object>> dataList = response.getBody();
             if (dataList == null || dataList.isEmpty()) return new Object[][]{};
@@ -73,7 +88,9 @@ public class AkShareTool {
                 table[i + 1] = new Object[]{item.get("排名"), item.get("板块名称"), item.get("涨跌幅"), item.get("上涨家数"), item.get("下跌家数"), item.get("领涨股票"), item.get("领涨股票-涨跌幅")};
             }
             return table;
-        } catch (Exception e) { return new Object[][]{{"错误", e.getMessage()}}; }
+        } catch (Exception e) {
+            return new Object[][]{{"错误", e.getMessage()}};
+        }
     }
 
     @Tool(description = "查询最近一个交易日的龙虎榜数据（大资金动向）")
@@ -91,14 +108,16 @@ public class AkShareTool {
             String formattedDate = date.minusDays(i).format(DateTimeFormatter.ofPattern("yyyyMMdd"));
             try {
                 ResponseEntity<List<Map<String, Object>>> response = restTemplate.exchange(
-                        urlTemplate.formatted(formattedDate, formattedDate), HttpMethod.GET, null, new ParameterizedTypeReference<List<Map<String, Object>>>() {}
+                        urlTemplate.formatted(formattedDate, formattedDate), HttpMethod.GET, null, new ParameterizedTypeReference<List<Map<String, Object>>>() {
+                        }
                 );
                 dataList = response.getBody();
                 if (dataList != null && !dataList.isEmpty()) {
                     actualDate = formattedDate;
                     break;
                 }
-            } catch (Exception ignored) {}
+            } catch (Exception ignored) {
+            }
         }
 
         if (dataList == null || dataList.isEmpty()) return new Object[][]{{"状态", "暂无龙虎榜数据"}};
@@ -106,8 +125,8 @@ public class AkShareTool {
         int limit = Math.min(dataList.size(), 15);
         Object[][] table = new Object[limit + 1][8];
         table[0] = new Object[]{"日期", "代码", "名称", "上榜原因", "买入额(万)", "卖出额(万)", "净买入(万)", "换手率(%)"};
-        String displayDate = actualDate != null ? 
-            actualDate.substring(0, 4) + "-" + actualDate.substring(4, 6) + "-" + actualDate.substring(6, 8) : "";
+        String displayDate = actualDate != null ?
+                actualDate.substring(0, 4) + "-" + actualDate.substring(4, 6) + "-" + actualDate.substring(6, 8) : "";
         for (int i = 0; i < limit; i++) {
             Map<String, Object> item = dataList.get(i);
             table[i + 1] = new Object[]{displayDate, item.get("代码"), item.get("名称"), item.get("上榜原因"), item.get("买入额"), item.get("卖出额"), item.get("净买入额"), item.get("换手率")};
@@ -134,7 +153,8 @@ public class AkShareTool {
         url += "&period=daily&adjust=qfq";
         try {
             ResponseEntity<List<Map<String, Object>>> response = restTemplate.exchange(
-                    url, HttpMethod.GET, null, new ParameterizedTypeReference<List<Map<String, Object>>>() {}
+                    url, HttpMethod.GET, null, new ParameterizedTypeReference<List<Map<String, Object>>>() {
+                    }
             );
             List<Map<String, Object>> dataList = response.getBody();
             if (dataList == null || dataList.isEmpty()) return new Object[][]{{"状态", "暂无K线数据"}};
@@ -150,7 +170,13 @@ public class AkShareTool {
                 };
             }
             return table;
-        } catch (Exception e) { return new Object[][]{{"错误", e.getMessage()}}; }
+        } catch (Exception e) {
+            log.error("请求接口失败：{}", url, e);
+            Object[][] objects = stockZhAHist.stockZhAHist(symbol, "daily",
+                    startDate, endDate,
+                    "qfq", null);
+            return objects;
+        }
     }
 
     @Tool(description = "查询股票基本面信息，包括市盈率、市净率、ROE等财务指标")
@@ -160,10 +186,11 @@ public class AkShareTool {
     }
 
     public Object[][] getStockFundamentalsRaw(String symbol) {
+        String url1 = BASE_URL + "stock_individual_info_em?symbol=" + symbol;
         try {
-            String url1 = BASE_URL + "stock_individual_info_em?symbol=" + symbol;
             ResponseEntity<List<Map<String, Object>>> response1 = restTemplate.exchange(
-                    url1, HttpMethod.GET, null, new ParameterizedTypeReference<List<Map<String, Object>>>() {}
+                    url1, HttpMethod.GET, null, new ParameterizedTypeReference<List<Map<String, Object>>>() {
+                    }
             );
             List<Map<String, Object>> infoList = response1.getBody();
 
@@ -177,12 +204,16 @@ public class AkShareTool {
                 }
             }
             return table;
-        } catch (Exception e) { return new Object[][]{{"错误", e.getMessage()}}; }
+        } catch (Exception e) {
+            log.error("请求接口失败：{}", url1, e);
+            Object[][] objects = stockIndividualInfoEm.stockIndividualInfoEm(symbol, 30d);
+            return objects;
+        }
     }
 
     @Tool(description = "查询股票财务报表数据（利润表、资产负债表等）")
     public String getStockFinancialReport(
-            @ToolParam(description = "股票代码，如：600519") String symbol,
+            @ToolParam(description = "股票代码，如：SH600519、SZ002475、BJ920375") String symbol,
             @ToolParam(description = "报表类型：income-利润表，balance-资产负债表，cash-现金流量表", required = false) String reportType) {
         String type = (reportType == null || reportType.isEmpty()) ? "income" : reportType;
         return MarkdownUtil.arrayToMarkdownTable(getStockFinancialReportRaw(symbol, type));
@@ -192,17 +223,18 @@ public class AkShareTool {
         String url;
         switch (reportType) {
             case "balance":
-                url = BASE_URL + "stock_balance_sheet_by_company_em?symbol=" + symbol;
+                url = BASE_URL + "stock_balance_sheet_by_report_em?symbol=" + symbol;
                 break;
             case "cash":
-                url = BASE_URL + "stock_cash_flow_sheet_by_company_em?symbol=" + symbol;
+                url = BASE_URL + "stock_cash_flow_sheet_by_report_em?symbol=" + symbol;
                 break;
             default:
-                url = BASE_URL + "stock_profit_sheet_by_company_em?symbol=" + symbol;
+                url = BASE_URL + "stock_profit_sheet_by_report_em?symbol=" + symbol;
         }
         try {
             ResponseEntity<List<Map<String, Object>>> response = restTemplate.exchange(
-                    url, HttpMethod.GET, null, new ParameterizedTypeReference<List<Map<String, Object>>>() {}
+                    url, HttpMethod.GET, null, new ParameterizedTypeReference<List<Map<String, Object>>>() {
+                    }
             );
             List<Map<String, Object>> dataList = response.getBody();
             if (dataList == null || dataList.isEmpty()) return new Object[][]{{"状态", "暂无财务报表数据"}};
@@ -223,7 +255,18 @@ public class AkShareTool {
                 return table;
             }
             return new Object[][]{{"状态", "数据格式异常"}};
-        } catch (Exception e) { return new Object[][]{{"错误", e.getMessage()}}; }
+        } catch (Exception e) {
+            log.error("请求接口失败：{}", url, e);
+            switch (reportType) {
+                case "balance":
+                    break;
+                case "cash":
+                    break;
+                default:
+                    return stockProfitSheetByReportEm.stockProfitSheetByReportEm(symbol);
+            }
+            throw new RuntimeException("请求接口失败：" + url, e);
+        }
     }
 
     @Tool(description = "查询股票估值指标，包括PE、PB、PS等")
@@ -234,9 +277,10 @@ public class AkShareTool {
 
     public Object[][] getStockValuationRaw(String symbol) {
         try {
-            String url = BASE_URL + "stock_a_ttm_lyr?symbol=" + symbol;
+            String url = BASE_URL + "stock_value_em?symbol=" + symbol;
             ResponseEntity<List<Map<String, Object>>> response = restTemplate.exchange(
-                    url, HttpMethod.GET, null, new ParameterizedTypeReference<List<Map<String, Object>>>() {}
+                    url, HttpMethod.GET, null, new ParameterizedTypeReference<List<Map<String, Object>>>() {
+                    }
             );
             List<Map<String, Object>> dataList = response.getBody();
             if (dataList == null || dataList.isEmpty()) return new Object[][]{{"状态", "暂无估值数据"}};
@@ -249,6 +293,8 @@ public class AkShareTool {
                 table[i + 1] = new Object[]{item.get("date"), item.get("PETTM"), item.get("PBMRQ"), item.get("ps")};
             }
             return table;
-        } catch (Exception e) { return new Object[][]{{"错误", e.getMessage()}}; }
+        } catch (Exception e) {
+            return new Object[][]{{"错误", e.getMessage()}};
+        }
     }
 }
