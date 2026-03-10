@@ -2,6 +2,7 @@ package com.lyh.base.agent.memory;
 
 import com.alibaba.fastjson2.JSONObject;
 import com.lyh.base.agent.context.RequestContext;
+import com.lyh.base.agent.define.impl.SummaryAgent;
 import com.lyh.base.agent.domain.DO.LlmMemory;
 import com.lyh.base.agent.domain.DO.LlmMemoryVector;
 import com.lyh.base.agent.domain.DO.LlmSummary;
@@ -35,7 +36,7 @@ public class MemoryManager {
     private final MilvusMemoryRepository milvusMemoryRepository;
     private final SummaryRepository summaryRepository;
     private final ExecutorService milvusThreadPool;
-    private final ChatModel chatModel;
+    private final SummaryAgent summaryAgent;
 
     public List<Message> loadMemory(String userMessage) {
         if (RequestContext.isNewConversation()) {
@@ -155,13 +156,11 @@ public class MemoryManager {
         // 3. 构建 Prompt
         StringBuilder promptBuilder = new StringBuilder();
         if (oldSummary != null) {
-            promptBuilder.append("已知先前的对话摘要：\n").append(oldSummary.getContent()).append("\n\n");
+            promptBuilder.append("先前的对话摘要：\n").append(oldSummary.getContent()).append("\n\n");
         }
         promptBuilder.append("新增的原始对话片段：\n" + intermediateContent);
-        promptBuilder.append("\n请结合上述摘要（如有）和新增的原始对话片段，生成更新后的综合摘要（300字内），你只需输出摘要内容即可，不要输出其他任何说明性内容。");
 
-        List<Message> promptMessages = List.of(new SystemMessage("你是一个记忆助手"), new UserMessage(promptBuilder.toString()));
-        String newSummaryContent = chatModel.call(promptMessages).getReply();
+        String newSummaryContent = summaryAgent.send(promptBuilder.toString());
         if (StringUtils.hasText(newSummaryContent)) {
             // 4. 保存新位标摘要
             LlmSummary newSummary = new LlmSummary();

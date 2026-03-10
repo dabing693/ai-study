@@ -1,5 +1,6 @@
 package com.lyh.base.agent.config;
 
+import com.lyh.base.agent.define.impl.SummaryAgent;
 import com.lyh.base.agent.mapper.LlmMemoryMapper;
 import com.lyh.base.agent.memory.MemoryManager;
 import com.lyh.base.agent.memory.MemoryProperty;
@@ -25,9 +26,11 @@ public class MemoryConfig {
                                        MilvusMemoryRepository milvusMemoryRepository,
                                        SummaryRepository summaryRepository,
                                        @Qualifier("milvusThreadPool") ExecutorService milvusThreadPool,
-                                       ChatModel chatModel
+                                       SummaryAgent summaryAgent
     ) {
-        return new MemoryManager(memoryProperty, mysqlMemoryRepository, milvusMemoryRepository, summaryRepository, milvusThreadPool, chatModel);
+        return new MemoryManager(
+                memoryProperty, mysqlMemoryRepository, milvusMemoryRepository,
+                summaryRepository, milvusThreadPool, summaryAgent);
     }
 
     @Bean
