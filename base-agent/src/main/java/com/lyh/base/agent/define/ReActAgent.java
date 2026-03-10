@@ -55,6 +55,7 @@ public abstract class ReActAgent extends BaseAgent implements StreamableAgent {
         return planResponse;
     }
 
+    @LangfuseTracer
     @Override
     public void chatStream(String query, Consumer<StreamEvent> eventConsumer) {
         List<Message> messageList = sense(query);

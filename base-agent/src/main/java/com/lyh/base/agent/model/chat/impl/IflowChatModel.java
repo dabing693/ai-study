@@ -57,6 +57,7 @@ public class IflowChatModel extends ChatModel {
         return call(request);
     }
 
+    @LangfuseObserver
     @Override
     public StreamChatResult stream(List<Message> messages,
                                    List<FunctionTool> tools,

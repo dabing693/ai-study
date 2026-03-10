@@ -22,7 +22,7 @@ public class LangfuseTraceAspect {
     private LangfuseOpenTelemetryService langfuseOpenTelemetryService;
 
     @Around("@annotation(com.lyh.base.agent.observation.LangfuseTracer)")
-    public Object traceMethod2(ProceedingJoinPoint joinPoint) throws Throwable {
+    public Object traceMethod(ProceedingJoinPoint joinPoint) throws Throwable {
         String clzName = joinPoint.getTarget().getClass().getSimpleName();
         String methodName = joinPoint.getSignature().getName();
         String traceName = String.format("%s::%s", clzName, methodName);
@@ -34,23 +34,18 @@ public class LangfuseTraceAspect {
 
         try {
             Object result = joinPoint.proceed();
-
-            Map<String, Object> output = new HashMap<>();
-            output.put("result", JSONObject.toJSONString(result));
-
+            Map<String, Object> output = Map.of("result", JSONObject.toJSONString(result));
             traceService.createTrace(traceId, traceName, input, output);
             return result;
         } catch (Exception e) {
-            Map<String, Object> errorOutput = new HashMap<>();
-            errorOutput.put("error", e.getMessage());
-
+            Map<String, Object> errorOutput = Map.of("result", e.getMessage());
             traceService.createTrace(traceId, traceName + "_error", input, errorOutput);
             throw e;
         }
     }
 
     @Around("@annotation(com.lyh.base.agent.observation.LangfuseObserver)")
-    public Object observeMethod2(ProceedingJoinPoint joinPoint) throws Throwable {
+    public Object observeMethod(ProceedingJoinPoint joinPoint) throws Throwable {
         long start = System.currentTimeMillis();
         String clzName = joinPoint.getTarget().getClass().getSimpleName();
         String methodName = joinPoint.getSignature().getName();
@@ -63,17 +58,13 @@ public class LangfuseTraceAspect {
         String spanId = UUID.randomUUID().toString();
         try {
             Object result = joinPoint.proceed();
-            Map<String, Object> output = new HashMap<>();
-            output.put("result", JSONObject.toJSONString(result));
+            Map<String, Object> output = Map.of("result", JSONObject.toJSONString(result));
             langfuseOpenTelemetryService.sendSpan(traceId, spanId, traceName,
                     input, output,
                     start, System.currentTimeMillis(), null
             );
             return result;
         } catch (Exception e) {
-            Map<String, Object> errorOutput = new HashMap<>();
-            errorOutput.put("error", e.getMessage());
-
             langfuseOpenTelemetryService.sendSpan(traceId, spanId, traceName,
                     input, null,
                     start, System.currentTimeMillis(), e);
