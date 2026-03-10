@@ -6,5 +6,6 @@ package com.lyh.base.agent.enums;
  */
 public enum MemoryStrategy {
     sliding_window,
-    semantic_call;
+    semantic_call,
+    hybrid_tiered;
 }

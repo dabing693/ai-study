@@ -19,4 +19,14 @@ public class MemoryQuery {
      * 最小的相关性分数
      */
     private Double minScore;
+    /**
+     * 最小的消息ID限制（逻辑水位线），旧于此ID的消息将被忽略
+     */
+    private Long minId;
+
+    public MemoryQuery(String conversationId, Integer limit, Long minId) {
+        this.conversationId = conversationId;
+        this.limit = limit;
+        this.minId = minId;
+    }
 }

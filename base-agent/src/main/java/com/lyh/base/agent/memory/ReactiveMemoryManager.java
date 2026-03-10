@@ -4,11 +4,14 @@ import com.alibaba.fastjson2.JSONObject;
 import com.lyh.base.agent.context.RequestContext;
 import com.lyh.base.agent.domain.DO.LlmMemory;
 import com.lyh.base.agent.domain.DO.LlmMemoryVector;
-import com.lyh.base.agent.domain.message.Message;
+import com.lyh.base.agent.domain.DO.LlmSummary;
+import com.lyh.base.agent.domain.message.*;
 import com.lyh.base.agent.enums.MemoryStrategy;
 import com.lyh.base.agent.enums.MessageType;
 import com.lyh.base.agent.memory.repository.MilvusMemoryRepository;
 import com.lyh.base.agent.memory.repository.MysqlMemoryRepository;
+import com.lyh.base.agent.memory.repository.SummaryRepository;
+import com.lyh.base.agent.model.chat.ChatModel;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
@@ -20,6 +23,7 @@ import java.util.stream.Collectors;
 
 /**
  * 响应式记忆管理器，直接从 Reactor Context 中获取会话信息，避免对 ThreadLocal 的依赖
+ *
  * @author Gemini CLI
  */
 @Slf4j
@@ -28,7 +32,9 @@ public class ReactiveMemoryManager {
     private final MemoryProperty memoryProperty;
     private final MysqlMemoryRepository mysqlMemoryRepository;
     private final MilvusMemoryRepository milvusMemoryRepository;
+    private final SummaryRepository summaryRepository;
     private final ExecutorService milvusThreadPool;
+    private final ChatModel chatModel;
 
     /**
      * 加载记忆，自动从 Reactor Context 中提取 UserContext
@@ -41,24 +47,59 @@ public class ReactiveMemoryManager {
             }
 
             String sessionId = userContext.getConversationId();
-            return Mono.fromCallable(() -> {
-                MemoryStrategy strategy = MemoryStrategy.valueOf(memoryProperty.getStrategy());
-                MemoryQuery query = new MemoryQuery(sessionId, userMessage,
-                        memoryProperty.getMaxMessageNum(), memoryProperty.getMinScore());
-                
-                List<Message> hisMessages = new ArrayList<>();
-                if (Objects.equals(strategy, MemoryStrategy.sliding_window)) {
-                    hisMessages = memory2Message(mysqlMemoryRepository.get(query));
-                } else if (Objects.equals(strategy, MemoryStrategy.semantic_call)) {
-                    hisMessages = memoryVector2Message(milvusMemoryRepository.get(query));
-                }
+            MemoryStrategy strategy = MemoryStrategy.valueOf(memoryProperty.getStrategy());
+            MemoryQuery query = new MemoryQuery(sessionId, userMessage,
+                    memoryProperty.getMaxMessageNum(), memoryProperty.getMinScore(), null);
 
-                int maxHisMsg = memoryProperty.getMaxMessageNum() - 2;
-                if (hisMessages.size() > maxHisMsg) {
-                    hisMessages = hisMessages.subList(hisMessages.size() - maxHisMsg, hisMessages.size());
-                }
-                return hisMessages;
-            }).subscribeOn(Schedulers.boundedElastic());
+            // 1. 加载摘要并确定位标
+            Mono<Optional<LlmSummary>> latestSummaryMono = memoryProperty.isEnableSummary() ?
+                    Mono.fromCallable(() -> Optional.ofNullable(summaryRepository.getLatest(sessionId)))
+                            .subscribeOn(Schedulers.boundedElastic()) :
+                    Mono.just(Optional.empty());
+
+            return latestSummaryMono.flatMap(summaryOpt -> {
+                Long minId = summaryOpt.map(LlmSummary::getLastMemoryId).orElse(null);
+                query.setMinId(minId);
+
+                List<Message> summaryMessages = new ArrayList<>();
+                summaryOpt.ifPresent(s -> {
+                    UserMessage msg =
+                            new UserMessage("[历史对话摘要]: " + s.getContent());
+                    msg.setHis(true);
+                    summaryMessages.add(msg);
+                });
+
+                // 2. 加载历史 (L1/L2)
+                Mono<List<Message>> historyMono = Mono.fromCallable(() -> {
+                    List<Message> hisMessages = new ArrayList<>();
+                    if (Objects.equals(strategy, MemoryStrategy.sliding_window)) {
+                        hisMessages = memory2Message(mysqlMemoryRepository.get(query));
+                    } else if (Objects.equals(strategy, MemoryStrategy.semantic_call)) {
+                        hisMessages = memoryVector2Message(milvusMemoryRepository.get(query), true);
+                    } else if (Objects.equals(strategy, MemoryStrategy.hybrid_tiered)) {
+                        // L1
+                        MemoryQuery windowQuery = new MemoryQuery(sessionId,
+                                memoryProperty.getActiveWindow(), minId);
+                        List<LlmMemory> windowMemories = mysqlMemoryRepository.get(windowQuery);
+                        List<Message> l1 = memory2Message(windowMemories);
+                        // L2
+                        MemoryQuery semQuery = new MemoryQuery(sessionId, userMessage, 5, memoryProperty.getMinScore(), null);
+                        List<LlmMemoryVector> vectors = milvusMemoryRepository.get(semQuery);
+                        Set<Long> wIds = windowMemories.stream().map(LlmMemory::getId).collect(Collectors.toSet());
+                        List<LlmMemoryVector> filtered = vectors.stream().filter(v -> !wIds.contains(v.getId())).collect(Collectors.toList());
+                        List<Message> l2 = memoryVector2Message(filtered, true);
+                        hisMessages.addAll(l2);
+                        hisMessages.addAll(l1);
+                    }
+                    return hisMessages;
+                }).subscribeOn(Schedulers.boundedElastic());
+
+                return historyMono.map(his -> {
+                    List<Message> combined = new ArrayList<>(summaryMessages);
+                    combined.addAll(his);
+                    return combined;
+                });
+            });
         });
     }
 
@@ -69,7 +110,7 @@ public class ReactiveMemoryManager {
         return Mono.deferContextual(ctx -> {
             RequestContext.UserContext userContext = ctx.get(RequestContext.USER_CONTEXT_KEY);
             if (userContext == null) {
-                log.warn("Reactor Context 中未找到 UserContext，无法保存记忆");
+                log.warn("Reactor Context 中未找到 UserContext，无法保存 memory");
                 return Mono.empty();
             }
             String sessionId = userContext.getConversationId();
@@ -77,10 +118,68 @@ public class ReactiveMemoryManager {
             return Mono.<Void>fromRunnable(() -> {
                 List<LlmMemory> llmMemories = mysqlMemoryRepository.add(sessionId, newMessages);
                 newMessages.forEach(it -> it.setHis(true));
-                // 异步存入向量数据库，复用原来的线程池逻辑
+                // 异步存入向量数据库
                 milvusThreadPool.execute(() -> milvusMemoryRepository.add(sessionId, llmMemories));
+
+                // 异步摘要触发检测
+                if (memoryProperty.isEnableSummary()) {
+                    checkAndCompressAsync(sessionId);
+                }
             }).subscribeOn(Schedulers.boundedElastic());
         });
+    }
+
+    private void checkAndCompressAsync(String sessionId) {
+        milvusThreadPool.execute(() -> {
+            try {
+                LlmSummary latest = summaryRepository.getLatest(sessionId);
+                Long minId = (latest != null) ? latest.getLastMemoryId() : null;
+
+                long count = mysqlMemoryRepository.countNormalMessages(sessionId, minId);
+                if (count >= memoryProperty.getSummaryThreshold()) {
+                    log.info("会话 {} 触发响应式逻辑位标摘要压缩", sessionId);
+                    performCompression(sessionId, latest);
+                }
+            } catch (Exception e) {
+                log.error("响应式记忆压缩失败", e);
+            }
+        });
+    }
+
+    private void performCompression(String sessionId, LlmSummary oldSummary) {
+        int activeWindow = memoryProperty.getActiveWindow();
+        Long lastId = (oldSummary != null) ? oldSummary.getLastMemoryId() : null;
+
+        long totalAfterWatermark = mysqlMemoryRepository.countNormalMessages(sessionId, lastId);
+        int toCompressCount = (int) (totalAfterWatermark - activeWindow);
+        if (toCompressCount <= 0) return;
+
+        List<LlmMemory> memoriesToCompress = mysqlMemoryRepository.getOldestMessages(sessionId, lastId, toCompressCount);
+        if (memoriesToCompress.isEmpty()) return;
+
+        Long newLastMemoryId = memoriesToCompress.get(memoriesToCompress.size() - 1).getId();
+
+        String intermediateContent = memoriesToCompress.stream()
+                .map(it -> it.getType() + ": " + it.getContent())
+                .collect(Collectors.joining("\n"));
+
+        StringBuilder promptBuilder = new StringBuilder();
+        if (oldSummary != null) {
+            promptBuilder.append("已知先前的对话摘要：\n").append(oldSummary.getContent()).append("\n\n");
+        }
+        promptBuilder.append("请结合上述摘要（如有）和以下新增的原始对话片段，生成更新后的综合摘要（300字内）：\n");
+        promptBuilder.append(intermediateContent);
+
+        String newSummaryContent = chatModel.call(List.of(new UserMessage(promptBuilder.toString()))).getReply();
+
+        LlmSummary newSummary = new LlmSummary();
+        newSummary.setConversationId(sessionId);
+        newSummary.setContent(newSummaryContent);
+        newSummary.setTimestamp(java.time.LocalDateTime.now());
+        newSummary.setLastMemoryId(newLastMemoryId);
+        summaryRepository.save(newSummary);
+
+        log.info("会话 {} [响应式] 逻辑摘要滚动完成，位标推进至 {}", sessionId, newLastMemoryId);
     }
 
     private List<Message> memory2Message(List<LlmMemory> memoryList) {
@@ -92,13 +191,13 @@ public class ReactiveMemoryManager {
         for (LlmMemory it : llmMemories) {
             Message msg;
             if (Objects.equals(it.getType(), MessageType.user)) {
-                msg = JSONObject.parseObject(it.getJsonContent(), com.lyh.base.agent.domain.message.UserMessage.class);
+                msg = JSONObject.parseObject(it.getJsonContent(), UserMessage.class);
             } else if (Objects.equals(it.getType(), MessageType.assistant)) {
-                msg = JSONObject.parseObject(it.getJsonContent(), com.lyh.base.agent.domain.message.AssistantMessage.class);
+                msg = JSONObject.parseObject(it.getJsonContent(), AssistantMessage.class);
             } else if (Objects.equals(it.getType(), MessageType.tool)) {
-                msg = JSONObject.parseObject(it.getJsonContent(), com.lyh.base.agent.domain.message.ToolMessage.class);
+                msg = JSONObject.parseObject(it.getJsonContent(), ToolMessage.class);
             } else if (Objects.equals(it.getType(), MessageType.system)) {
-                msg = JSONObject.parseObject(it.getJsonContent(), com.lyh.base.agent.domain.message.SystemMessage.class);
+                msg = JSONObject.parseObject(it.getJsonContent(), SystemMessage.class);
             } else {
                 throw new RuntimeException("未知消息类型：" + it.getType());
             }
@@ -111,7 +210,7 @@ public class ReactiveMemoryManager {
         return msgList;
     }
 
-    private List<Message> memoryVector2Message(List<LlmMemoryVector> vectorList) {
+    private List<Message> memoryVector2Message(List<LlmMemoryVector> vectorList, boolean addWeightTip) {
         if (vectorList == null || vectorList.isEmpty()) {
             return Collections.emptyList();
         }
@@ -120,7 +219,11 @@ public class ReactiveMemoryManager {
             if (it == null || !org.springframework.util.StringUtils.hasText(it.getContent())) {
                 continue;
             }
-            Message msg = new com.lyh.base.agent.domain.message.UserMessage(it.getContent());
+            String content = it.getContent();
+            if (addWeightTip) {
+                content = "[相关历史记忆]: " + content;
+            }
+            Message msg = new UserMessage(content);
             msg.setHis(true);
             msgList.add(msg);
         }

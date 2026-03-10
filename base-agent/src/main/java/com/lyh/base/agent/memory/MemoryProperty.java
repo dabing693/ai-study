@@ -20,4 +20,17 @@ public class MemoryProperty {
      */
     private String strategy = MemoryStrategy.sliding_window.name();
     private Double minScore = 0.90;
+
+    /**
+     * 是否开启记忆摘要压缩
+     */
+    private boolean enableSummary = false;
+    /**
+     * 触发摘要的条数阈值
+     */
+    private Integer summaryThreshold = 20;
+    /**
+     * 在执行摘要压缩时，要保留多少条最新消息不被压缩
+     */
+    private Integer activeWindow = 10;
 }

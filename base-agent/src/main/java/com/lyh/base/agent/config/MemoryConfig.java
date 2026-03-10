@@ -8,6 +8,9 @@ import com.lyh.base.agent.memory.repository.MysqlMemoryRepository;
 import com.lyh.base.agent.memory.repository.RamMemoryRepository;
 import com.lyh.base.agent.model.embedding.EmbeddingModel;
 import io.milvus.v2.client.MilvusClientV2;
+import com.lyh.base.agent.model.chat.ChatModel;
+import com.lyh.base.agent.memory.ReactiveMemoryManager;
+import com.lyh.base.agent.memory.repository.SummaryRepository;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
@@ -20,9 +23,23 @@ public class MemoryConfig {
     public MemoryManager memoryManager(MemoryProperty memoryProperty,
                                        MysqlMemoryRepository mysqlMemoryRepository,
                                        MilvusMemoryRepository milvusMemoryRepository,
-                                       @Qualifier("milvusThreadPool") ExecutorService milvusThreadPool
+                                       SummaryRepository summaryRepository,
+                                       @Qualifier("milvusThreadPool") ExecutorService milvusThreadPool,
+                                       ChatModel chatModel
     ) {
-        return new MemoryManager(memoryProperty, mysqlMemoryRepository, milvusMemoryRepository, milvusThreadPool);
+        return new MemoryManager(memoryProperty, mysqlMemoryRepository, milvusMemoryRepository, summaryRepository, milvusThreadPool, chatModel);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public ReactiveMemoryManager reactiveMemoryManager(MemoryProperty memoryProperty,
+                                                       MysqlMemoryRepository mysqlMemoryRepository,
+                                                       MilvusMemoryRepository milvusMemoryRepository,
+                                                       SummaryRepository summaryRepository,
+                                                       @Qualifier("milvusThreadPool") ExecutorService milvusThreadPool,
+                                                       ChatModel chatModel
+    ) {
+        return new ReactiveMemoryManager(memoryProperty, mysqlMemoryRepository, milvusMemoryRepository, summaryRepository, milvusThreadPool, chatModel);
     }
 
     @Bean
@@ -35,6 +52,12 @@ public class MemoryConfig {
     @ConditionalOnMissingBean
     public RamMemoryRepository ramMemoryRepository() {
         return new RamMemoryRepository();
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public SummaryRepository summaryRepository(com.lyh.base.agent.mapper.LlmSummaryMapper llmSummaryMapper) {
+        return new SummaryRepository(llmSummaryMapper);
     }
 
     @Bean

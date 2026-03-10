@@ -34,6 +34,9 @@ public class MysqlMemoryRepository implements IMemoryRepository<Message, LlmMemo
     public List<LlmMemory> get(MemoryQuery query) {
         QueryWrapper<LlmMemory> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("conversation_id", query.getConversationId());
+        if (query.getMinId() != null) {
+            queryWrapper.gt("id", query.getMinId());
+        }
         //不查系统提示词
         queryWrapper.ne("type", MessageType.system.name());
         //按时间降序排序 优先取最新的
@@ -42,13 +45,29 @@ public class MysqlMemoryRepository implements IMemoryRepository<Message, LlmMemo
         return llmMemoryMapper.selectList(queryWrapper);
     }
 
-    public List<LlmMemory> getByIds(List<Long> ids) {
-        if (CollectionUtils.isEmpty(ids)) {
-            return Collections.emptyList();
-        }
+    public long countNormalMessages(String conversationId, Long minId) {
         QueryWrapper<LlmMemory> queryWrapper = new QueryWrapper<>();
-        queryWrapper.in("id", ids);
+        queryWrapper.eq("conversation_id", conversationId);
+        if (minId != null) {
+            queryWrapper.gt("id", minId);
+        }
+        // 排除系统/摘要消息
+        queryWrapper.ne("type", MessageType.system.name());
+        return llmMemoryMapper.selectCount(queryWrapper);
+    }
 
+    /**
+     * 获取最早的 N 条普通消息（从位点之后开始）
+     */
+    public List<LlmMemory> getOldestMessages(String conversationId, Long minId, int limit) {
+        QueryWrapper<LlmMemory> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("conversation_id", conversationId);
+        if (minId != null) {
+            queryWrapper.gt("id", minId);
+        }
+        queryWrapper.ne("type", MessageType.system.name())
+                .orderByAsc("timestamp") // 升序，取最早的
+                .last("limit " + limit);
         return llmMemoryMapper.selectList(queryWrapper);
     }
 
