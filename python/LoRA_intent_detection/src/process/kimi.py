@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 from LoRA_intent_detection.src import config
 
 # 设置随机种子保证可重复性
-random.seed(42)
+random.seed(43)
 
 # 定义各类实体和模板
 stocks = [
@@ -371,7 +371,7 @@ random.shuffle(all_data)
 
 # 创建DataFrame
 df = pd.DataFrame(all_data)
-df.to_csv(config.PROCESSED_DATA_DIR / 'kimi_finance_intent_5000.csv', index=False)
+df.to_csv(config.PROCESSED_DATA_DATE_DIR / 'kimi_finance_intent_5000.csv', index=False)
 
 # 显示数据统计
 print("\n数据生成完成！")

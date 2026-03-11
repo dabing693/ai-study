@@ -55,7 +55,8 @@ def generate_query(intent):
         return "未知问题"
 
 
-with open(config.PROCESSED_DATA_DIR / "chatgpt_finance_intent_5000.csv", "w", newline='', encoding="utf-8-sig") as f:
+with open(config.PROCESSED_DATA_DATE_DIR /
+          "chatgpt_finance_intent_5000.csv", "w", newline='', encoding="utf-8-sig") as f:
     writer = csv.writer(f)
     writer.writerow(["input", "output"])
 

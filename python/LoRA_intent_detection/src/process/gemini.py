@@ -16,30 +16,30 @@ comparisons = ["最大", "最小", "最高", "最低", "前10名"]
 
 # --- 2. 定义意图模板 (Intent Templates) ---
 templates = {
-    "1、条件选股": [
+    "条件选股": [
         "A股;{industry}包含{sub_industry}市净率0-5;",
         "{industry}板块{indicator}{comparison}的{n}个股票",
         "{time_period}涨幅最大的{fund_type}",
         "股价低于20元且{indicator}大于10%的{industry}股"
     ],
-    "2、查询数据": [
+    "查询数据": [
         "{stock}涨了多少",
         "{stock}的{indicator}",
         "{fund}主力资金净流入",
         "{stock}最新的财报数据"
     ],
-    "3、综合诊股": ["综合分析下{stock}", "帮我诊股{stock}", "{stock}现在能买吗", "深度评价一下{stock}的投资价值"],
-    "4、综合诊基": ["{fund}表现怎么样", "诊基：{fund}", "{fund}目前的风险高吗", "帮我分析下{fund}这只基金"],
-    "5、基本面诊股": ["{stock}的分红能力强吗", "{stock}的财务状况健康吗", "{stock}的营收构成分析",
+    "综合诊股": ["综合分析下{stock}", "帮我诊股{stock}", "{stock}现在能买吗", "深度评价一下{stock}的投资价值"],
+    "综合诊基": ["{fund}表现怎么样", "诊基：{fund}", "{fund}目前的风险高吗", "帮我分析下{fund}这只基金"],
+    "基本面诊股": ["{stock}的分红能力强吗", "{stock}的财务状况健康吗", "{stock}的营收构成分析",
                      "看下{stock}的盈利能力"],
-    "6、技术面诊股": ["{stock}的技术指标如何", "看下{stock}的支撑位和压力位", "{stock}现在是多头排列吗",
+    "技术面诊股": ["{stock}的技术指标如何", "看下{stock}的支撑位和压力位", "{stock}现在是多头排列吗",
                      "{stock}的K线走势分析"],
-    "7、消息面诊股": ["{stock}最近有什么利空消息", "{stock}有重大利好吗", "分析下关于{stock}的新闻",
+    "消息面诊股": ["{stock}最近有什么利空消息", "{stock}有重大利好吗", "分析下关于{stock}的新闻",
                      "最近政策对{industry}有什么影响"],
-    "8、涨跌分析": ["为什么今天{industry}板块大跌", "解释一下{stock}放量上涨的原因", "大盘今天为什么跳水",
+    "涨跌分析": ["为什么今天{industry}板块大跌", "解释一下{stock}放量上涨的原因", "大盘今天为什么跳水",
                    "创业板指上涨动力是什么"],
-    "9自选股分析": ["看下我自选股里的{stock}", "我持仓的{industry}股最近风险大吗", "帮我诊断下我的自选股"],
-    "10、知识问答": ["什么是{knowledge}", "怎么看{indicator}", "{indicator}的定义是什么", "股市里的{knowledge}怎么理解"]
+    "自选股分析": ["看下我自选股里的{stock}", "我持仓的{industry}股最近风险大吗", "帮我诊断下我的自选股"],
+    "知识问答": ["什么是{knowledge}", "怎么看{indicator}", "{indicator}的定义是什么", "股市里的{knowledge}怎么理解"]
 }
 
 knowledge_pool = ["量比", "MACD金叉", "除权除息", "换手率", "蓝筹股", "黑天鹅", "头肩底", "北向资金"]
@@ -69,7 +69,7 @@ for i in range(total_count):
     data_rows.append([query, intent])
 
 # --- 4. 写入CSV ---
-file_path = config.PROCESSED_DATA_DIR / 'gemini_finance_intent_5000.csv'
+file_path = config.PROCESSED_DATA_DATE_DIR / 'gemini_finance_intent_5000.csv'
 with open(file_path, 'w', encoding='utf-8-sig', newline='') as f:
     writer = csv.writer(f)
     writer.writerow(["input", "output"])

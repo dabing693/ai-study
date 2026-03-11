@@ -96,7 +96,7 @@ for intent, templates in intent_templates.items():
         ])
 
 # 写入CSV文件
-with open(config.PROCESSED_DATA_DIR / "doubao_finance_intent_5000.csv", "w", encoding="utf-8", newline="") as f:
+with open(config.PROCESSED_DATA_DATE_DIR / "doubao_finance_intent_5000.csv", "w", encoding="utf-8", newline="") as f:
     writer = csv.writer(f)
     writer.writerow(header)
     writer.writerows(data)
