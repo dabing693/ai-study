@@ -36,6 +36,7 @@ import org.springframework.context.annotation.Import;
         MultiAgentConfig.class,
         LangfuseConfig.class,
         SystemToolConfig.class,
+        RedisConfig.class,
 })
 public class BaseAgentAutoConfiguration {
     @Bean

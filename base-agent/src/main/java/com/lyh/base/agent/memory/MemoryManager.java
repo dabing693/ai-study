@@ -12,6 +12,7 @@ import com.lyh.base.agent.enums.MemoryStrategy;
 import com.lyh.base.agent.enums.MessageType;
 import com.lyh.base.agent.memory.repository.MilvusMemoryRepository;
 import com.lyh.base.agent.memory.repository.MysqlMemoryRepository;
+import com.lyh.base.agent.memory.repository.RedisMemoryRepository;
 import com.lyh.base.agent.memory.repository.SummaryRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -37,6 +38,7 @@ public class MemoryManager {
     private final SummaryRepository summaryRepository;
     private final ExecutorService milvusThreadPool;
     private final SummaryAgent summaryAgent;
+    private final RedisMemoryRepository redisMemoryRepository;
 
     public List<Message> loadMemory(String userMessage) {
         if (RequestContext.isNewConversation()) {
@@ -67,20 +69,35 @@ public class MemoryManager {
         } else if (Objects.equals(strategy, MemoryStrategy.semantic_call)) {
             hisMessages = memoryVector2Message(milvusMemoryRepository.get(query), true);
         } else if (Objects.equals(strategy, MemoryStrategy.hybrid_tiered)) {
-            // L1: 窗口消息 (最近 10 条，且在位标之后)
-            MemoryQuery windowQuery = new MemoryQuery(query.getConversationId(),
-                    memoryProperty.getActiveWindow(), minId);
-            List<LlmMemory> windowMemories = mysqlMemoryRepository.get(windowQuery);
-            List<Message> l1Messages = memory2Message(windowMemories);
+            // L1: 窗口消息 - 优先从Redis读取热数据
+            List<Message> l1Messages;
+            if (memoryProperty.isEnableRedisCache()) {
+                l1Messages = redisMemoryRepository.get(RequestContext.getSession(), memoryProperty.getActiveWindow());
+                if (l1Messages.size() < memoryProperty.getActiveWindow()) {
+                    MemoryQuery windowQuery = new MemoryQuery(query.getConversationId(),
+                            memoryProperty.getActiveWindow(), minId);
+                    List<LlmMemory> windowMemories = mysqlMemoryRepository.get(windowQuery);
+                    l1Messages = memory2Message(windowMemories);
+                    //回填redis
+                    redisMemoryRepository.add(query.getConversationId(), l1Messages);
+                }
+            } else {
+                MemoryQuery windowQuery = new MemoryQuery(query.getConversationId(),
+                        memoryProperty.getActiveWindow(), minId);
+                List<LlmMemory> windowMemories = mysqlMemoryRepository.get(windowQuery);
+                l1Messages = memory2Message(windowMemories);
+            }
 
             // L2: 语义召回 (Top 5 相关，无视位标，因为向量库全量索引)
             MemoryQuery semanticQuery = new MemoryQuery(query.getConversationId(), userMessage, 5, memoryProperty.getMinScore(), null);
             List<LlmMemoryVector> vectors = milvusMemoryRepository.get(semanticQuery);
 
             // 过滤
-            Set<Long> windowIds = windowMemories.stream().map(LlmMemory::getId).collect(Collectors.toSet());
+            Set<String> l1Contents = l1Messages.stream()
+                    .map(Message::storedContent)
+                    .collect(Collectors.toSet());
             List<LlmMemoryVector> filteredVectors = vectors.stream()
-                    .filter(v -> !windowIds.contains(v.getId()))
+                    .filter(v -> !l1Contents.contains(v.getContent()))
                     .collect(Collectors.toList());
             List<Message> l2Messages = memoryVector2Message(filteredVectors, true);
 
@@ -102,6 +119,11 @@ public class MemoryManager {
         List<LlmMemory> llmMemories = mysqlMemoryRepository.add(RequestContext.getSession(), newMessages);
         // 存完数据库，就变成历史消息了
         newMessages.forEach(it -> it.setHis(true));
+
+        // 存入Redis缓存
+        if (memoryProperty.isEnableRedisCache()) {
+            redisMemoryRepository.add(RequestContext.getSession(), newMessages);
+        }
 
         // 异步存入向量数据库
         milvusThreadPool.execute(() -> milvusMemoryRepository.add(RequestContext.getSession(), llmMemories));

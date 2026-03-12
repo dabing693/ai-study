@@ -7,6 +7,7 @@ import com.lyh.base.agent.memory.MemoryProperty;
 import com.lyh.base.agent.memory.repository.MilvusMemoryRepository;
 import com.lyh.base.agent.memory.repository.MysqlMemoryRepository;
 import com.lyh.base.agent.memory.repository.RamMemoryRepository;
+import com.lyh.base.agent.memory.repository.RedisMemoryRepository;
 import com.lyh.base.agent.model.embedding.EmbeddingModel;
 import io.milvus.v2.client.MilvusClientV2;
 import com.lyh.base.agent.model.chat.ChatModel;
@@ -15,6 +16,7 @@ import com.lyh.base.agent.memory.repository.SummaryRepository;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
+import org.springframework.data.redis.core.RedisTemplate;
 
 import java.util.concurrent.ExecutorService;
 
@@ -26,11 +28,13 @@ public class MemoryConfig {
                                        MilvusMemoryRepository milvusMemoryRepository,
                                        SummaryRepository summaryRepository,
                                        @Qualifier("milvusThreadPool") ExecutorService milvusThreadPool,
-                                       SummaryAgent summaryAgent
+                                       SummaryAgent summaryAgent,
+                                       RedisMemoryRepository redisMemoryRepository
     ) {
         return new MemoryManager(
                 memoryProperty, mysqlMemoryRepository, milvusMemoryRepository,
-                summaryRepository, milvusThreadPool, summaryAgent);
+                summaryRepository, milvusThreadPool, summaryAgent,
+                redisMemoryRepository);
     }
 
     @Bean
@@ -73,5 +77,11 @@ public class MemoryConfig {
     @ConditionalOnMissingBean
     public MilvusMemoryRepository milvusMemoryRepository(MilvusClientV2 milvusClientV2, EmbeddingModel embeddingModel) {
         return new MilvusMemoryRepository(milvusClientV2, embeddingModel);
+    }
+
+    @Bean
+    public RedisMemoryRepository redisMemoryRepository(RedisTemplate<String, String> redisTemplate,
+                                                       MemoryProperty memoryProperty) {
+        return new RedisMemoryRepository(redisTemplate, memoryProperty);
     }
 }

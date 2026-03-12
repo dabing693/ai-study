@@ -33,4 +33,18 @@ public class MemoryProperty {
      * 在执行摘要压缩时，要保留多少条最新消息不被压缩
      */
     private Integer activeWindow = 10;
+
+    /**
+     * 是否启用Redis缓存热数据
+     */
+    private boolean enableRedisCache = true;
+
+    /**
+     * Redis key前缀
+     */
+    private String redisKeyPrefix = "memory:active:";
+    /**
+     * Redis key过期时间（分钟）
+     */
+    private Integer redisKeyExpireMinutes = 60;
 }
