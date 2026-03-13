@@ -39,8 +39,8 @@ public class MysqlMemoryRepository implements IMemoryRepository<Message, LlmMemo
         }
         //不查系统提示词
         queryWrapper.ne("type", MessageType.system.name());
-        //按时间降序排序 优先取最新的
-        queryWrapper.orderByDesc("timestamp");
+        //按时间降序排序、时间相同按id降序 优先取最新的
+        queryWrapper.orderByDesc(List.of("timestamp", "id"));
         queryWrapper.last("limit " + query.getLimit());
         return llmMemoryMapper.selectList(queryWrapper);
     }

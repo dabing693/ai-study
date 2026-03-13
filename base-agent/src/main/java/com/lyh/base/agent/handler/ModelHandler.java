@@ -34,7 +34,8 @@ public class ModelHandler {
             String template = FileCopyUtils.copyToString(reader);
             if (args != null) {
                 for (int i = 0; i < args.length; i++) {
-                    template = template.replace(String.format("{arg%s}", i + 1), args[i]);
+                    String arg = args[i] == null ? "[EMPTY]" : args[i];
+                    template = template.replace(String.format("{arg%s}", i + 1), arg);
                 }
             }
             return new UserMessage(template);

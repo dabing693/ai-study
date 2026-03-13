@@ -76,13 +76,13 @@ public class IflowChatModel extends ChatModel {
     private ChatResponse call(ChatRequest request) {
         HttpHeaders requestHeaders = new HttpHeaders();
         requestHeaders.set("Authorization", "Bearer " + chatModelProperty.getApiKey());
-        log.info("Iflow Request: {}", JSONArray.toJSONString(request));
         HttpEntity<ChatRequest> httpEntity = new HttpEntity<>(request, requestHeaders);
         return restTemplate.postForObject(chatModelProperty.getBaseUrl(), httpEntity, ChatResponse.class);
     }
 
     private StreamChatResult streamCall(ChatRequest request, Consumer<StreamEvent> eventConsumer) {
         String requestBody = JSONObject.toJSONString(request);
+        log.info("Iflow请求: {}", requestBody);
         HttpRequest httpRequest = HttpRequest.newBuilder()
                 .uri(URI.create(chatModelProperty.getBaseUrl()))
                 .timeout(Duration.ofSeconds(120))
@@ -100,8 +100,9 @@ public class IflowChatModel extends ChatModel {
                     HttpResponse.BodyHandlers.ofLines());
             response.body().forEach(line -> handleStreamLine(line, eventConsumer, contentBuilder,
                     reasoningBuilder, toolCallsBuilder));
-        } catch (IOException | InterruptedException e) {
-            throw new RuntimeException("Iflow Stream call failed", e);
+        } catch (Exception e) {
+            log.error("流式输出异常", e);
+            throw new RuntimeException(e);
         }
 
         AssistantMessage message = new AssistantMessage(contentBuilder.toString());
@@ -140,7 +141,8 @@ public class IflowChatModel extends ChatModel {
         try {
             streamPayload = JSONObject.parseObject(payload, StreamPayload.class);
         } catch (Exception ex) {
-            return;
+            log.error("流式输出异常：{}", line);
+            throw new RuntimeException(ex);
         }
         StreamPayload.Choice.Delta delta = Optional.ofNullable(streamPayload)
                 .map(StreamPayload::getChoices)

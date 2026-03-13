@@ -40,3 +40,17 @@ CREATE TABLE IF NOT EXISTS agent_conversation_mapping (
     KEY idx_parent_conversation (parent_conversation_id),
     KEY idx_agent_conversation (agent_conversation_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Agent会话映射表';
+
+
+CREATE TABLE `llm_memory` (
+                              `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+                              `conversation_id` varchar(36) NOT NULL,
+                              `content` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci,
+                              `type` varchar(10) NOT NULL,
+                              `timestamp` timestamp(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+                              `json_content` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci COMMENT '序列化后的消息内容',
+                              PRIMARY KEY (`id`),
+                              KEY `conversation_id_timestamp_idx` (`conversation_id`,`timestamp`),
+                              KEY `idx_conversation_id_type_timestamp` (`conversation_id`,`type`,`timestamp`),
+                              CONSTRAINT `llm_memory_TYPE_CHECK` CHECK ((`type` in (_utf8mb4'user',_utf8mb4'assistant',_utf8mb4'system',_utf8mb4'tool')))
+) ENGINE=InnoDB AUTO_INCREMENT=3621 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
