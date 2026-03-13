@@ -1,7 +1,6 @@
 package com.lyh.base.agent.config;
 
 import com.lyh.base.agent.context.SpringContext;
-import com.lyh.base.agent.define.impl.SummaryAgent;
 import com.lyh.base.agent.model.chat.ChatModel;
 import com.lyh.base.agent.observation.LangfuseConfig;
 import com.lyh.base.agent.observation.LangfuseOpenTelemetryService;
@@ -20,7 +19,12 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 
 @Configuration
-@MapperScan("com.lyh.base.agent.mapper")
+@MapperScan({
+        "com.lyh.base.agent.mapper",
+})
+@ComponentScan({
+        "com.lyh.base.agent.handler",
+})
 @Import({
         SkillsLoader.class,
         LangfuseTraceAspect.class,
@@ -45,10 +49,5 @@ public class BaseAgentAutoConfiguration {
                                      MemoryManager memoryManager) {
         ToolManager toolManager = skillsLoader.buildToolManager();
         return new SkillInvoker(chatModel, toolManager, memoryManager);
-    }
-
-    @Bean
-    public SummaryAgent summaryAgent(ChatModel chatModel) {
-        return new SummaryAgent(chatModel);
     }
 }

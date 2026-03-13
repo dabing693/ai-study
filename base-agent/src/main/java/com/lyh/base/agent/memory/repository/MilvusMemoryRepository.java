@@ -74,7 +74,7 @@ public class MilvusMemoryRepository implements IMemoryRepository<LlmMemory, LlmM
 
     @Override
     public List<LlmMemoryVector> get(MemoryQuery query) {
-        if (!StringUtils.hasText(query.getQuery())) {
+        if (!StringUtils.hasText(query.getValidQuery())) {
             return Collections.emptyList();
         }
         return hybridSearch(query);
@@ -89,12 +89,12 @@ public class MilvusMemoryRepository implements IMemoryRepository<LlmMemory, LlmM
         AnnSearchReq sparseRequest = AnnSearchReq.builder()
                 .vectorFieldName("content_embeddings")
                 .metricType(IndexParam.MetricType.BM25)
-                .vectors(Collections.singletonList(new EmbeddedText(query.getQuery())))
+                .vectors(Collections.singletonList(new EmbeddedText(query.getValidQuery())))
                 .filter(filter)
                 .limit(limit)
                 .build();
         // 4) 生成密集向量，用于向量相似度检索。
-        List<Float> queryVector = embeddingModel.genVector(query.getQuery());
+        List<Float> queryVector = embeddingModel.genVector(query.getValidQuery());
         // 5) 密集向量检索：使用COSINE度量。
         AnnSearchReq denseRequest = AnnSearchReq.builder()
                 .vectorFieldName("content_vector")

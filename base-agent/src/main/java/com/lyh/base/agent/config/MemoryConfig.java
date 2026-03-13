@@ -1,6 +1,7 @@
 package com.lyh.base.agent.config;
 
-import com.lyh.base.agent.define.impl.SummaryAgent;
+import com.lyh.base.agent.handler.QueryRewriteModelHandler;
+import com.lyh.base.agent.handler.SummaryModelHandler;
 import com.lyh.base.agent.mapper.LlmMemoryMapper;
 import com.lyh.base.agent.memory.MemoryManager;
 import com.lyh.base.agent.memory.MemoryProperty;
@@ -25,16 +26,18 @@ public class MemoryConfig {
     @ConditionalOnMissingBean
     public MemoryManager memoryManager(MemoryProperty memoryProperty,
                                        MysqlMemoryRepository mysqlMemoryRepository,
+                                       RedisMemoryRepository redisMemoryRepository,
                                        MilvusMemoryRepository milvusMemoryRepository,
                                        SummaryRepository summaryRepository,
                                        @Qualifier("milvusThreadPool") ExecutorService milvusThreadPool,
-                                       SummaryAgent summaryAgent,
-                                       RedisMemoryRepository redisMemoryRepository
+                                       SummaryModelHandler summaryModelHandler,
+                                       QueryRewriteModelHandler queryRewriteModelHandler
     ) {
         return new MemoryManager(
-                memoryProperty, mysqlMemoryRepository, milvusMemoryRepository,
-                summaryRepository, milvusThreadPool, summaryAgent,
-                redisMemoryRepository);
+                memoryProperty, mysqlMemoryRepository, redisMemoryRepository,
+                milvusMemoryRepository, summaryRepository, milvusThreadPool,
+                summaryModelHandler, queryRewriteModelHandler
+        );
     }
 
     @Bean

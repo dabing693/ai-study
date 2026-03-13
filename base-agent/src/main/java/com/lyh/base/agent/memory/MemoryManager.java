@@ -2,7 +2,8 @@ package com.lyh.base.agent.memory;
 
 import com.alibaba.fastjson2.JSONObject;
 import com.lyh.base.agent.context.RequestContext;
-import com.lyh.base.agent.define.impl.SummaryAgent;
+import com.lyh.base.agent.handler.QueryRewriteModelHandler;
+import com.lyh.base.agent.handler.SummaryModelHandler;
 import com.lyh.base.agent.domain.DO.LlmMemory;
 import com.lyh.base.agent.domain.DO.LlmMemoryVector;
 import com.lyh.base.agent.domain.DO.LlmSummary;
@@ -22,7 +23,6 @@ import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.stream.Collectors;
 
-import com.lyh.base.agent.model.chat.ChatModel;
 import org.springframework.util.StringUtils;
 
 /**
@@ -34,11 +34,12 @@ import org.springframework.util.StringUtils;
 public class MemoryManager {
     private final MemoryProperty memoryProperty;
     private final MysqlMemoryRepository mysqlMemoryRepository;
+    private final RedisMemoryRepository redisMemoryRepository;
     private final MilvusMemoryRepository milvusMemoryRepository;
     private final SummaryRepository summaryRepository;
     private final ExecutorService milvusThreadPool;
-    private final SummaryAgent summaryAgent;
-    private final RedisMemoryRepository redisMemoryRepository;
+    private final SummaryModelHandler summaryModelHandler;
+    private final QueryRewriteModelHandler queryRewriteModelHandler;
 
     public List<Message> loadMemory(String userMessage) {
         if (RequestContext.isNewConversation()) {
@@ -67,20 +68,15 @@ public class MemoryManager {
         if (Objects.equals(strategy, MemoryStrategy.sliding_window)) {
             hisMessages = memory2Message(mysqlMemoryRepository.get(query));
         } else if (Objects.equals(strategy, MemoryStrategy.semantic_call)) {
+            //query改写
+            String rewrittenQuery = queryRewrite(userMessage, minId);
+            query.setRewrittenQuery(rewrittenQuery);
             hisMessages = memoryVector2Message(milvusMemoryRepository.get(query), true);
         } else if (Objects.equals(strategy, MemoryStrategy.hybrid_tiered)) {
             // L1: 窗口消息 - 优先从Redis读取热数据
             List<Message> l1Messages;
             if (memoryProperty.isEnableRedisCache()) {
-                l1Messages = redisMemoryRepository.get(RequestContext.getSession(), memoryProperty.getActiveWindow());
-                if (l1Messages.size() < memoryProperty.getActiveWindow()) {
-                    MemoryQuery windowQuery = new MemoryQuery(query.getConversationId(),
-                            memoryProperty.getActiveWindow(), minId);
-                    List<LlmMemory> windowMemories = mysqlMemoryRepository.get(windowQuery);
-                    l1Messages = memory2Message(windowMemories);
-                    //回填redis
-                    redisMemoryRepository.add(query.getConversationId(), l1Messages);
-                }
+                l1Messages = l1MessageFromCache(minId);
             } else {
                 MemoryQuery windowQuery = new MemoryQuery(query.getConversationId(),
                         memoryProperty.getActiveWindow(), minId);
@@ -90,6 +86,9 @@ public class MemoryManager {
 
             // L2: 语义召回 (Top 5 相关，无视位标，因为向量库全量索引)
             MemoryQuery semanticQuery = new MemoryQuery(query.getConversationId(), userMessage, 5, memoryProperty.getMinScore(), null);
+            //query改写
+            String rewrittenQuery = queryRewrite(userMessage, minId);
+            query.setRewrittenQuery(rewrittenQuery);
             List<LlmMemoryVector> vectors = milvusMemoryRepository.get(semanticQuery);
 
             // 过滤
@@ -174,15 +173,8 @@ public class MemoryManager {
         String intermediateContent = memoriesToCompress.stream()
                 .map(it -> it.getType() + ": " + it.getContent())
                 .collect(Collectors.joining("\n"));
-
-        // 3. 构建 Prompt
-        StringBuilder promptBuilder = new StringBuilder();
-        if (oldSummary != null) {
-            promptBuilder.append("先前的对话摘要：\n").append(oldSummary.getContent()).append("\n\n");
-        }
-        promptBuilder.append("新增的原始对话片段：\n" + intermediateContent);
-
-        String newSummaryContent = summaryAgent.send(promptBuilder.toString());
+        String history = oldSummary == null ? null : oldSummary.getContent();
+        String newSummaryContent = summaryModelHandler.handle(history, intermediateContent);
         if (StringUtils.hasText(newSummaryContent)) {
             // 4. 保存新位标摘要
             LlmSummary newSummary = new LlmSummary();
@@ -193,7 +185,7 @@ public class MemoryManager {
             summaryRepository.save(newSummary);
             log.info("会话 {} 完成逻辑摘要滚动，位标推进至 {}", sessionId, newLastMemoryId);
         } else {
-            log.warn("会话摘要总结为空，session：{}，提示词：{}", sessionId, promptBuilder);
+            log.warn("会话摘要总结为空，session：{}", sessionId);
         }
     }
 
@@ -242,5 +234,43 @@ public class MemoryManager {
             msgList.add(msg);
         }
         return msgList;
+    }
+
+    private List<Message> l1MessageFromCache(Long minId) {
+        List<Message> l1Messages = redisMemoryRepository.get(RequestContext.getSession(), memoryProperty.getActiveWindow());
+        if (l1Messages.size() < memoryProperty.getActiveWindow()) {
+            MemoryQuery windowQuery = new MemoryQuery(RequestContext.getSession(), memoryProperty.getActiveWindow(), minId);
+            List<LlmMemory> windowMemories = mysqlMemoryRepository.get(windowQuery);
+            l1Messages = memory2Message(windowMemories);
+            //回填redis
+            redisMemoryRepository.add(RequestContext.getSession(), l1Messages);
+        }
+        return l1Messages;
+    }
+
+    private String queryRewrite(String query, Long minId) {
+        String resp = null;
+        try {
+            List<Message> messages = l1MessageFromCache(minId);
+            String history = messages.stream().map(it -> it.getRole() + "：" + it.getContent())
+                    .collect(Collectors.joining("\n"));
+            resp = queryRewriteModelHandler.handle(history, query);
+            if (resp == null) {
+                return query;
+            }
+            int start = resp.indexOf('{');
+            int end = resp.lastIndexOf('}');
+            resp = resp.substring(start, end + 1);
+            String newQuery = JSONObject.parseObject(resp).getString("rewritten_query");
+            if (!StringUtils.hasText(newQuery)) {
+                log.warn("query改写异常，query：{}，响应：{}", query, resp);
+                newQuery = query;
+            }
+            log.info("\n改写前：{}\n改写后：{}", query, newQuery);
+            return newQuery;
+        } catch (Exception e) {
+            log.error("query改写异常，query：{}，resp：{}", query, resp, e);
+            return query;
+        }
     }
 }

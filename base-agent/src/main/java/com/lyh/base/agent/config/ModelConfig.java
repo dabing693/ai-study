@@ -16,6 +16,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 import org.springframework.web.client.RestTemplate;
 
 /**
@@ -30,19 +31,26 @@ import org.springframework.web.client.RestTemplate;
 })
 @Configuration
 public class ModelConfig {
-
+    @Primary
     @Bean
-    @ConditionalOnProperty(prefix = "model.zhipu", name = "api-key")
+    @ConditionalOnProperty(prefix = "model.provider.chat", name = "default", havingValue = "zhipu")
     public ChatModel zhiPuChatModel(ZhiPuChatModelProperty chatModelProperty,
                                     RestTemplate restTemplate) {
         return new ZhiPuChatModel(chatModelProperty, restTemplate);
     }
 
+    @Primary
     @Bean
-    @ConditionalOnProperty(prefix = "model.iflow", name = "api-key")
+    @ConditionalOnProperty(prefix = "model.provider.chat", name = "default", havingValue = "iflow")
     public ChatModel iflowChatModel(IflowChatModelProperty chatModelProperty,
                                     RestTemplate restTemplate) {
         return new IflowChatModel(chatModelProperty, restTemplate);
+    }
+
+    @Bean
+    public ChatModel queryRewriteModel(ZhiPuChatModelProperty chatModelProperty,
+                                       RestTemplate restTemplate) {
+        return new ZhiPuChatModel(chatModelProperty, restTemplate);
     }
 
     @Bean
