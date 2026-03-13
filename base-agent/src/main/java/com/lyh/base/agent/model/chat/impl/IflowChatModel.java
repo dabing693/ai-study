@@ -6,6 +6,7 @@ import com.alibaba.fastjson2.annotation.JSONField;
 import com.lyh.base.agent.domain.*;
 import com.lyh.base.agent.domain.message.AssistantMessage;
 import com.lyh.base.agent.domain.message.Message;
+import com.lyh.base.agent.exception.ModelRetryException;
 import com.lyh.base.agent.model.chat.ChatModel;
 import com.lyh.base.agent.model.chat.property.ChatModelProperty;
 import com.lyh.base.agent.observation.LangfuseObserver;
@@ -29,7 +30,9 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
+import java.util.stream.Stream;
 
 /**
  * IflowChatModel调用具体实现
@@ -70,7 +73,18 @@ public class IflowChatModel extends ChatModel {
         if (!CollectionUtils.isEmpty(tools)) {
             request.setTools(tools);
         }
-        return streamCall(request, eventConsumer);
+        for (Integer i = 0; i < chatModelProperty.getRetryNum(); i++) {
+            try {
+                return streamCall(request, eventConsumer);
+            } catch (ModelRetryException e) {
+            }
+            try {
+                TimeUnit.SECONDS.sleep(chatModelProperty.getRetryIntervalSeconds());
+            } catch (InterruptedException e) {
+                log.error("sleep被中断");
+            }
+        }
+        return StreamChatResult.failResult();
     }
 
     private ChatResponse call(ChatRequest request) {
@@ -91,6 +105,7 @@ public class IflowChatModel extends ChatModel {
                 .POST(HttpRequest.BodyPublishers.ofString(requestBody))
                 .build();
 
+        StringBuilder totalBuilder = new StringBuilder();
         StringBuilder contentBuilder = new StringBuilder();
         StringBuilder reasoningBuilder = new StringBuilder();
         StringBuilder toolCallsBuilder = new StringBuilder();
@@ -98,11 +113,19 @@ public class IflowChatModel extends ChatModel {
             HttpClient client = HttpClient.newHttpClient();
             HttpResponse<java.util.stream.Stream<String>> response = client.send(httpRequest,
                     HttpResponse.BodyHandlers.ofLines());
-            response.body().forEach(line -> handleStreamLine(line, eventConsumer, contentBuilder,
-                    reasoningBuilder, toolCallsBuilder));
+            response.body().forEach(line -> handleStreamLine(line, eventConsumer, totalBuilder,
+                    contentBuilder, reasoningBuilder, toolCallsBuilder));
         } catch (Exception e) {
             log.error("流式输出异常", e);
             throw new RuntimeException(e);
+        }
+        // log.info("content结果：{}", contentBuilder);
+        // log.info("reasoning结果：{}", reasoningBuilder);
+        // log.info("toolCalls结果：{}", toolCallsBuilder);
+        boolean allEmpty = contentBuilder.isEmpty() && reasoningBuilder.isEmpty() && toolCallsBuilder.isEmpty();
+        if (allEmpty) {
+            log.error("模型未输出任何内容");
+            throw new ModelRetryException("模型未输出任何内容");
         }
 
         AssistantMessage message = new AssistantMessage(contentBuilder.toString());
@@ -124,9 +147,11 @@ public class IflowChatModel extends ChatModel {
 
     private void handleStreamLine(String line,
                                   Consumer<StreamEvent> eventConsumer,
+                                  StringBuilder totalBuilder,
                                   StringBuilder contentBuilder,
                                   StringBuilder reasoningBuilder,
                                   StringBuilder toolCallsBuilder) {
+        totalBuilder.append(line).append("\n[SEP]\n");
         if (!StringUtils.hasLength(line)) {
             return;
         }
@@ -166,8 +191,17 @@ public class IflowChatModel extends ChatModel {
             eventConsumer.accept(StreamEvent.delta(deltaContent));
         }
         String toolCalls = delta.getToolCalls();
-        if (toolCalls != null && !toolCalls.isEmpty()) {
-            toolCallsBuilder.append(toolCalls);
+        try {
+            JSONArray tmpArray = JSONArray.parseArray(toolCalls);
+            if (tmpArray != null && tmpArray.size() > 0) {
+                log.info("解析工具为JSONArray成功且非空，直接append：{}", toolCalls);
+                toolCallsBuilder.append(toolCalls);
+            }
+        } catch (Exception ex) {
+            log.error("解析工具为JSONArray失败，直接append：{}", toolCalls);
+            if (toolCalls != null && !toolCalls.isEmpty()) {
+                toolCallsBuilder.append(toolCalls);
+            }
         }
     }
 

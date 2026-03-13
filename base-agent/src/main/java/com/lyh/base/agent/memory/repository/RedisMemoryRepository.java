@@ -31,20 +31,23 @@ public class RedisMemoryRepository {
         int maxSize = memoryProperty.getActiveWindow();
         try {
             List<String> strMessages = messages.stream()
+                    //非系统提示词才存redis，与mysql get时不查询系统提示词保持一致
+                    .filter(it -> !Objects.equals(it.getRole(), MessageType.system.name()))
                     .map(it -> serializeMessage(it))
                     .filter(Objects::nonNull)
                     .collect(Collectors.toList());
-            if (!CollectionUtils.isEmpty(strMessages)) {
-                //push到右边
-                Long totalLen = redisTemplate.opsForList().rightPushAll(key, strMessages);
-                log.info("Redis缓存消息成功, conversationId={}, count={}", conversationId, strMessages.size());
-                if (totalLen > maxSize) {
-                    //删除左边
-                    redisTemplate.opsForList().trim(key, -maxSize, -1);
-                    log.info("Redis删除消息, conversationId={}, delNum={}", conversationId, totalLen - maxSize);
-                }
-                redisTemplate.expire(key, memoryProperty.getRedisKeyExpireMinutes(), TimeUnit.MINUTES);
+            if (CollectionUtils.isEmpty(strMessages)) {
+                return;
             }
+            //push到右边
+            Long totalLen = redisTemplate.opsForList().rightPushAll(key, strMessages);
+            log.info("Redis缓存消息成功, conversationId={}, count={}", conversationId, strMessages.size());
+            if (totalLen > maxSize) {
+                //删除左边
+                redisTemplate.opsForList().trim(key, -maxSize, -1);
+                log.info("Redis删除消息, conversationId={}, delNum={}", conversationId, totalLen - maxSize);
+            }
+            redisTemplate.expire(key, memoryProperty.getRedisKeyExpireMinutes(), TimeUnit.MINUTES);
         } catch (Exception e) {
             log.error("Redis缓存消息失败, conversationId={}", conversationId, e);
         }

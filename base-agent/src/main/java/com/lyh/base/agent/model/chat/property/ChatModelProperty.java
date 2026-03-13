@@ -12,4 +12,6 @@ public class ChatModelProperty {
     protected String apiKey;
     protected String modelName;
     protected Boolean enableThinking;
+    protected Integer retryNum = 3;
+    protected Integer retryIntervalSeconds = 2;
 }
