@@ -1,10 +1,12 @@
 package com.lyh.finance.config;
 
+import com.lyh.base.agent.mcp.McpClientManager;
 import com.lyh.base.agent.skills.SkillsLoader;
 import com.lyh.base.agent.tool.ToolBuilder;
 import com.lyh.finance.tools.*;
 import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Component;
+import org.springframework.beans.factory.annotation.Autowired;
 
 /**
  * ToolConfig
@@ -14,17 +16,24 @@ import org.springframework.stereotype.Component;
  */
 @Component
 public class ToolConfig {
+
+    @Autowired(required = false)
+    private McpClientManager mcpClientManager;
+
     @Bean
     public ToolBuilder financeExpertAgentTools(
             SkillsLoader skillsLoader,
             DateTimeTool dateTimeTool,
-            AccountTool accountTool,
             StockTool stockTool,
             FundTool fundTool,
             SearchTool searchTool,
             AkShareTool akShareTool
     ) {
-        return new ToolBuilder(skillsLoader, dateTimeTool, accountTool, stockTool, fundTool, searchTool, akShareTool);
+        ToolBuilder builder = new ToolBuilder(skillsLoader, dateTimeTool, stockTool, fundTool, searchTool, akShareTool);
+        if (mcpClientManager != null) {
+            mcpClientManager.registerAllTools(builder);
+        }
+        return builder;
     }
 
     @Bean

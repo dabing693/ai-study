@@ -64,6 +64,11 @@ public class ToolBuilder {
         return skillSet.get(skill);
     }
 
+    public void addDynamicTool(FunctionTool.Function function, java.util.function.Function<java.util.Map<String, Object>, Object> dynamicCallback) {
+        this.tools.add(new FunctionTool(function));
+        toolCallBacks.put(function.getName(), new ToolCallBack(dynamicCallback, function.getParameters()));
+    }
+
     /**
      * 把skills加载为模型api的tool
      *
@@ -150,10 +155,21 @@ public class ToolBuilder {
     }
 
     @Data
-    @AllArgsConstructor
     public static class ToolCallBack {
         private Method method;
         private Object object;
         private FunctionTool.Function.Parameters parameters;
+        private java.util.function.Function<java.util.Map<String, Object>, Object> dynamicCallback;
+
+        public ToolCallBack(Method method, Object object, FunctionTool.Function.Parameters parameters) {
+            this.method = method;
+            this.object = object;
+            this.parameters = parameters;
+        }
+
+        public ToolCallBack(java.util.function.Function<java.util.Map<String, Object>, Object> dynamicCallback, FunctionTool.Function.Parameters parameters) {
+            this.dynamicCallback = dynamicCallback;
+            this.parameters = parameters;
+        }
     }
 }

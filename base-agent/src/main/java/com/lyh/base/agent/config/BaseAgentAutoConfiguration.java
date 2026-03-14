@@ -1,6 +1,7 @@
 package com.lyh.base.agent.config;
 
 import com.lyh.base.agent.context.SpringContext;
+import com.lyh.base.agent.mcp.McpClientManager;
 import com.lyh.base.agent.model.chat.ChatModel;
 import com.lyh.base.agent.observation.LangfuseConfig;
 import com.lyh.base.agent.observation.LangfuseOpenTelemetryService;
@@ -41,6 +42,7 @@ import org.springframework.context.annotation.Import;
         LangfuseConfig.class,
         SystemToolConfig.class,
         RedisConfig.class,
+        McpClientManager.class,
 })
 public class BaseAgentAutoConfiguration {
     @Bean

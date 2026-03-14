@@ -24,6 +24,15 @@ public class ToolConfig {
     @Bean
     public ToolCallbackProvider springAITools(
             WeatherService weatherService,
+            AccountService accountService
+    ) {
+        return MethodToolCallbackProvider.builder()
+                .toolObjects(weatherService, accountService)
+                .build();
+    }
+
+    public ToolCallbackProvider springAITools_bak(
+            WeatherService weatherService,
             AccountService accountService,
             StockService stockService,
             FundService fundService,

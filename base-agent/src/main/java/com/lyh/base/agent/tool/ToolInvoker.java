@@ -62,6 +62,11 @@ public class ToolInvoker {
             }
             params[ind++] = valueMap.get(entry.getKey());
         }
+        if (toolCallBack.getDynamicCallback() != null) {
+            Object toolResult = toolCallBack.getDynamicCallback().apply(valueMap);
+            log.info("\n工具调用结果：\n{}", toolResult);
+            return new ToolMessage(ToolMessage.strContent(toolResult), toolCall.getId());
+        }
         Object toolResult = invoke(toolCallBack, params);
         log.info("\n工具调用结果：\n{}", toolResult);
         return new ToolMessage(ToolMessage.strContent(toolResult), toolCall.getId());
