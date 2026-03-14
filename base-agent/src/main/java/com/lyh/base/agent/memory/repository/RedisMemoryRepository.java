@@ -1,6 +1,7 @@
 package com.lyh.base.agent.memory.repository;
 
 import com.alibaba.fastjson2.JSONObject;
+import com.lyh.base.agent.domain.DO.LlmMemory;
 import com.lyh.base.agent.domain.message.*;
 import com.lyh.base.agent.enums.MessageType;
 import com.lyh.base.agent.memory.MemoryProperty;
@@ -23,7 +24,7 @@ public class RedisMemoryRepository {
     private final RedisTemplate<String, String> redisTemplate;
     private final MemoryProperty memoryProperty;
 
-    public void add(String conversationId, List<Message> messages) {
+    public void add(String conversationId, List<LlmMemory> messages) {
         if (messages == null || messages.isEmpty()) {
             return;
         }
@@ -32,7 +33,7 @@ public class RedisMemoryRepository {
         try {
             List<String> strMessages = messages.stream()
                     //非系统提示词才存redis，与mysql get时不查询系统提示词保持一致
-                    .filter(it -> !Objects.equals(it.getRole(), MessageType.system.name()))
+                    .filter(it -> !Objects.equals(it.getType(), MessageType.system))
                     .map(it -> serializeMessage(it))
                     .filter(Objects::nonNull)
                     .collect(Collectors.toList());
@@ -53,22 +54,19 @@ public class RedisMemoryRepository {
         }
     }
 
-    public List<Message> get(String conversationId, int limit) {
+    public List<LlmMemory> get(String conversationId, int limit) {
         String key = buildKey(conversationId);
         try {
             List<String> jsonList = redisTemplate.opsForList().range(key, 0, limit - 1);
             if (jsonList == null || jsonList.isEmpty()) {
                 return Collections.emptyList();
             }
-            List<Message> messages = new ArrayList<>();
+            List<LlmMemory> memories = new ArrayList<>();
             for (String json : jsonList) {
-                Message msg = deserializeMessage(json);
-                if (msg != null) {
-                    msg.setHis(true);
-                    messages.add(msg);
-                }
+                LlmMemory llmMemory = deserializeMessage(json);
+                memories.add(llmMemory);
             }
-            return messages;
+            return memories;
         } catch (Exception e) {
             log.error("Redis读取缓存失败, conversationId={}", conversationId, e);
             return Collections.emptyList();
@@ -89,30 +87,21 @@ public class RedisMemoryRepository {
         return memoryProperty.getRedisKeyPrefix() + conversationId;
     }
 
-    private String serializeMessage(Message message) {
+    private String serializeMessage(LlmMemory llmMemory) {
         try {
-            return JSONObject.toJSONString(message);
+            return JSONObject.toJSONString(llmMemory);
         } catch (Exception e) {
             log.error("消息序列化失败", e);
             return null;
         }
     }
 
-    private Message deserializeMessage(String json) {
+    private LlmMemory deserializeMessage(String json) {
         if (!StringUtils.hasText(json)) {
             return null;
         }
         try {
-            JSONObject obj = JSONObject.parseObject(json);
-            String role = obj.getString("role");
-            MessageType msgType = MessageType.valueOf(role);
-
-            return switch (msgType) {
-                case user -> obj.toJavaObject(UserMessage.class);
-                case assistant -> obj.toJavaObject(AssistantMessage.class);
-                case tool -> obj.toJavaObject(ToolMessage.class);
-                case system -> obj.toJavaObject(SystemMessage.class);
-            };
+            return JSONObject.parseObject(json, LlmMemory.class);
         } catch (Exception e) {
             log.error("消息反序列化失败, json={}", json, e);
             return null;

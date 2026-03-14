@@ -45,6 +45,10 @@ public class MysqlMemoryRepository implements IMemoryRepository<Message, LlmMemo
         return llmMemoryMapper.selectList(queryWrapper);
     }
 
+    public List<LlmMemory> selectByIds(List<Long> ids){
+       return llmMemoryMapper.selectByIds(ids);
+    }
+
     public long countNormalMessages(String conversationId, Long minId) {
         QueryWrapper<LlmMemory> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("conversation_id", conversationId);

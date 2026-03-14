@@ -71,45 +71,33 @@ public class MemoryManager {
             //query改写
             String rewrittenQuery = queryRewrite(userMessage, minId);
             query.setRewrittenQuery(rewrittenQuery);
-            hisMessages = memoryVector2Message(milvusMemoryRepository.get(query), true);
+            hisMessages = memoryVector2Message(milvusMemoryRepository.get(query));
         } else if (Objects.equals(strategy, MemoryStrategy.hybrid_tiered)) {
             // L1: 窗口消息 - 优先从Redis读取热数据
-            List<Message> l1Messages;
-            if (memoryProperty.isEnableRedisCache()) {
-                l1Messages = l1MessageFromCache(minId);
-            } else {
-                MemoryQuery windowQuery = new MemoryQuery(query.getConversationId(),
-                        memoryProperty.getActiveWindow(), minId);
-                List<LlmMemory> windowMemories = mysqlMemoryRepository.get(windowQuery);
-                l1Messages = memory2Message(windowMemories);
-            }
-
-            // L2: 语义召回 (Top 5 相关，无视位标，因为向量库全量索引)
-            MemoryQuery semanticQuery = new MemoryQuery(query.getConversationId(), userMessage, 5, memoryProperty.getMinScore(), null);
+            List<LlmMemory> l1Memories = loadL1Memory(minId);
+            List<Message> l1Messages = memory2Message(l1Memories);
             //query改写
             String rewrittenQuery = queryRewrite(userMessage, minId);
-            query.setRewrittenQuery(rewrittenQuery);
+            // L2: 语义召回 (Top 5 相关，无视位标，因为向量库全量索引)
+            MemoryQuery semanticQuery = new MemoryQuery(query.getConversationId(), userMessage, rewrittenQuery,
+                    memoryProperty.getMinScore());
             List<LlmMemoryVector> vectors = milvusMemoryRepository.get(semanticQuery);
-
             // 过滤
-            Set<String> l1Contents = l1Messages.stream()
-                    .map(Message::storedContent)
+            Set<Long> l1Ids = l1Memories.stream()
+                    .map(LlmMemory::getId)
                     .collect(Collectors.toSet());
             List<LlmMemoryVector> filteredVectors = vectors.stream()
-                    .filter(v -> !l1Contents.contains(v.getContent()))
+                    .filter(v -> !l1Ids.contains(v.getId()))
                     .collect(Collectors.toList());
-            List<Message> l2Messages = memoryVector2Message(filteredVectors, true);
-
+            List<Message> l2Messages = memoryVector2Message(filteredVectors);
             hisMessages.addAll(l2Messages);
             hisMessages.addAll(l1Messages);
         }
-
         // 3. 去重归并限制条数
         int maxHisMsg = memoryProperty.getMaxMessageNum() - 2;
         if (hisMessages.size() > maxHisMsg) {
             hisMessages = hisMessages.subList(hisMessages.size() - maxHisMsg, hisMessages.size());
         }
-
         finalMessages.addAll(hisMessages);
         return finalMessages;
     }
@@ -121,7 +109,7 @@ public class MemoryManager {
 
         // 存入Redis缓存
         if (memoryProperty.isEnableRedisCache()) {
-            redisMemoryRepository.add(RequestContext.getSession(), newMessages);
+            redisMemoryRepository.add(RequestContext.getSession(), llmMemories);
         }
 
         // 异步存入向量数据库
@@ -143,7 +131,7 @@ public class MemoryManager {
                 // 统计位标之后的普通消息数
                 long count = mysqlMemoryRepository.countNormalMessages(sessionId, minId);
                 if (count >= memoryProperty.getSummaryThreshold()) {
-                    log.info("会话 {} 水位线后消息数 {} 触发逻辑摘要压缩", sessionId, count);
+                    log.info("会话：{} 水位线后消息数 {} 触发逻辑摘要压缩", sessionId, count);
                     performCompression(sessionId, latest);
                 }
             } catch (Exception e) {
@@ -216,43 +204,44 @@ public class MemoryManager {
         return msgList;
     }
 
-    private List<Message> memoryVector2Message(List<LlmMemoryVector> vectorList, boolean addWeightTip) {
+    private List<Message> memoryVector2Message(List<LlmMemoryVector> vectorList) {
         if (vectorList == null || vectorList.isEmpty()) {
             return Collections.emptyList();
         }
-        List<Message> msgList = new ArrayList<>();
-        for (LlmMemoryVector it : vectorList) {
-            if (it == null || !StringUtils.hasText(it.getContent())) {
-                continue;
-            }
-            String content = it.getContent();
-            if (addWeightTip) {
-                content = "[相关历史记忆]: " + content;
-            }
-            Message msg = new UserMessage(content);
-            msg.setHis(true);
-            msgList.add(msg);
+        List<Long> ids = vectorList.stream().map(LlmMemoryVector::getId).collect(Collectors.toList());
+        if (ids.isEmpty()) {
+            return Collections.emptyList();
         }
-        return msgList;
+        List<LlmMemory> llmMemories = mysqlMemoryRepository.selectByIds(ids);
+        return memory2Message(llmMemories);
     }
 
-    private List<Message> l1MessageFromCache(Long minId) {
-        List<Message> l1Messages = redisMemoryRepository.get(RequestContext.getSession(), memoryProperty.getActiveWindow());
-        if (l1Messages.size() < memoryProperty.getActiveWindow()) {
-            MemoryQuery windowQuery = new MemoryQuery(RequestContext.getSession(), memoryProperty.getActiveWindow(), minId);
-            List<LlmMemory> windowMemories = mysqlMemoryRepository.get(windowQuery);
-            l1Messages = memory2Message(windowMemories);
-            //回填redis
-            redisMemoryRepository.add(RequestContext.getSession(), l1Messages);
+    private List<LlmMemory> loadL1Memory(Long minId) {
+        List<LlmMemory> llmMemories = null;
+        String conversationId = RequestContext.getSession();
+        if (memoryProperty.isEnableRedisCache()) {
+            llmMemories = redisMemoryRepository.get(conversationId, memoryProperty.getActiveWindow());
+            //todo 不去查mysql，存在redis过期后用户重新开始问，最近的对话未拿到
+            //todo 去查mysql，新对话用户刚开始问，查了mysql也达不到条数
+            if (llmMemories.size() < memoryProperty.getActiveWindow()) {
+                MemoryQuery windowQuery = new MemoryQuery(conversationId, memoryProperty.getActiveWindow(), minId);
+                llmMemories = mysqlMemoryRepository.get(windowQuery);
+                //回填redis
+                redisMemoryRepository.add(conversationId, llmMemories);
+            }
+        } else {
+            MemoryQuery windowQuery = new MemoryQuery(conversationId,
+                    memoryProperty.getActiveWindow(), minId);
+            llmMemories = mysqlMemoryRepository.get(windowQuery);
         }
-        return l1Messages;
+        return llmMemories;
     }
 
     private String queryRewrite(String query, Long minId) {
         String resp = null;
         try {
-            List<Message> messages = l1MessageFromCache(minId);
-            String history = messages.stream().map(it -> it.getRole() + "：" + it.getContent())
+            List<LlmMemory> llmMemories = loadL1Memory(minId);
+            String history = llmMemories.stream().map(it -> it.getType() + "：" + it.getContent())
                     .collect(Collectors.joining("\n"));
             resp = queryRewriteModelHandler.handle(history, query);
             if (resp == null) {

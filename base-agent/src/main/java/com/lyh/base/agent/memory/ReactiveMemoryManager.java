@@ -75,7 +75,7 @@ public class ReactiveMemoryManager {
                     if (Objects.equals(strategy, MemoryStrategy.sliding_window)) {
                         hisMessages = memory2Message(mysqlMemoryRepository.get(query));
                     } else if (Objects.equals(strategy, MemoryStrategy.semantic_call)) {
-                        hisMessages = memoryVector2Message(milvusMemoryRepository.get(query), true);
+                        hisMessages = memoryVector2Message(milvusMemoryRepository.get(query));
                     } else if (Objects.equals(strategy, MemoryStrategy.hybrid_tiered)) {
                         // L1
                         MemoryQuery windowQuery = new MemoryQuery(sessionId,
@@ -87,7 +87,7 @@ public class ReactiveMemoryManager {
                         List<LlmMemoryVector> vectors = milvusMemoryRepository.get(semQuery);
                         Set<Long> wIds = windowMemories.stream().map(LlmMemory::getId).collect(Collectors.toSet());
                         List<LlmMemoryVector> filtered = vectors.stream().filter(v -> !wIds.contains(v.getId())).collect(Collectors.toList());
-                        List<Message> l2 = memoryVector2Message(filtered, true);
+                        List<Message> l2 = memoryVector2Message(filtered);
                         hisMessages.addAll(l2);
                         hisMessages.addAll(l1);
                     }
@@ -210,23 +210,15 @@ public class ReactiveMemoryManager {
         return msgList;
     }
 
-    private List<Message> memoryVector2Message(List<LlmMemoryVector> vectorList, boolean addWeightTip) {
+    private List<Message> memoryVector2Message(List<LlmMemoryVector> vectorList) {
         if (vectorList == null || vectorList.isEmpty()) {
             return Collections.emptyList();
         }
-        List<Message> msgList = new ArrayList<>();
-        for (LlmMemoryVector it : vectorList) {
-            if (it == null || !org.springframework.util.StringUtils.hasText(it.getContent())) {
-                continue;
-            }
-            String content = it.getContent();
-            if (addWeightTip) {
-                content = "[相关历史记忆]: " + content;
-            }
-            Message msg = new UserMessage(content);
-            msg.setHis(true);
-            msgList.add(msg);
+        List<Long> ids = vectorList.stream().map(LlmMemoryVector::getId).collect(Collectors.toList());
+        if (ids.isEmpty()) {
+            return Collections.emptyList();
         }
-        return msgList;
+        List<LlmMemory> llmMemories = mysqlMemoryRepository.selectByIds(ids);
+        return memory2Message(llmMemories);
     }
 }

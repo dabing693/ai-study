@@ -32,6 +32,13 @@ public class MemoryQuery {
         this.minId = minId;
     }
 
+    public MemoryQuery(String conversationId, String query, String rewrittenQuery, Double minScore) {
+        this.conversationId = conversationId;
+        this.query = query;
+        this.rewrittenQuery = rewrittenQuery;
+        this.minScore = minScore;
+    }
+
     public MemoryQuery(String conversationId, Integer limit, Long minId) {
         this.conversationId = conversationId;
         this.limit = limit;
