@@ -25,6 +25,7 @@ import java.util.Map;
 @Slf4j
 @Service
 public class AkShareTool {
+    private static final int maxNum = 20;
 
     @Autowired
     private RestTemplate restTemplate;
@@ -269,13 +270,14 @@ public class AkShareTool {
         }
     }
 
-    @Tool(description = "查询股票估值指标，包括PE、PB、PS等")
+    @Tool(description = "查询股票估值指标，包括PE（市盈率）、PB（市净率）、PS（市销率）等")
     public String getStockValuation(
             @ToolParam(description = "股票代码，如：600519") String symbol) {
         return MarkdownUtil.arrayToMarkdownTable(getStockValuationRaw(symbol));
     }
 
     public Object[][] getStockValuationRaw(String symbol) {
+        String[] head = new String[]{"数据日期", "PE(TTM)", "市净率", "市销率"};
         try {
             String url = BASE_URL + "stock_value_em?symbol=" + symbol;
             ResponseEntity<List<Map<String, Object>>> response = restTemplate.exchange(
@@ -283,14 +285,22 @@ public class AkShareTool {
                     }
             );
             List<Map<String, Object>> dataList = response.getBody();
-            if (dataList == null || dataList.isEmpty()) return new Object[][]{{"状态", "暂无估值数据"}};
+            if (dataList == null || dataList.isEmpty()) {
+                return new Object[][]{{"状态", "暂无估值数据"}};
+            }
 
-            int limit = Math.min(dataList.size(), 30);
-            Object[][] table = new Object[limit + 1][4];
-            table[0] = new Object[]{"日期", "PETTM", "PBMRQ", "PS"};
+            int limit = Math.min(dataList.size(), maxNum);
+            Object[][] table = new Object[limit + 1][head.length];
+            table[0] = head;
             for (int i = 0; i < limit; i++) {
                 Map<String, Object> item = dataList.get(dataList.size() - limit + i);
-                table[i + 1] = new Object[]{item.get("date"), item.get("PETTM"), item.get("PBMRQ"), item.get("ps")};
+                for (int j = 0; j < head.length; j++) {
+                    Object val = item.get(head[j]);
+                    if (j == 0 && val instanceof String) {
+                        val = ((String) val).substring(0, 10);
+                    }
+                    table[i + 1][j] = val;
+                }
             }
             return table;
         } catch (Exception e) {

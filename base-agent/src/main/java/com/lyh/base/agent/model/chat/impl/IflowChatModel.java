@@ -124,7 +124,7 @@ public class IflowChatModel extends ChatModel {
         // log.info("toolCalls结果：{}", toolCallsBuilder);
         boolean allEmpty = contentBuilder.isEmpty() && reasoningBuilder.isEmpty() && toolCallsBuilder.isEmpty();
         if (allEmpty) {
-            log.error("模型未输出任何内容");
+            log.error("模型未输出任何内容：\n{}", totalBuilder);
             throw new ModelRetryException("模型未输出任何内容");
         }
 
