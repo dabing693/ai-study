@@ -16,4 +16,5 @@ public class LlmMemory {
     private MessageType type;
     private LocalDateTime timestamp;
     private String jsonContent;
+    private Long turnId;
 }

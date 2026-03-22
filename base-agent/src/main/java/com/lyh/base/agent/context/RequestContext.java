@@ -68,6 +68,10 @@ public class RequestContext {
     public static class UserContext {
         private String conversationId;
         private Boolean newConversation;
+        /**
+         * 当前轮次唯一标识
+         */
+        private Long turnId;
 
         public static UserContext of(String conversationId, Boolean newConversation) {
             final UserContext userContext = new UserContext();

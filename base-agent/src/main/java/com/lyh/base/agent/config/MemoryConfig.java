@@ -3,6 +3,7 @@ package com.lyh.base.agent.config;
 import com.lyh.base.agent.handler.QueryRewriteModelHandler;
 import com.lyh.base.agent.handler.SummaryModelHandler;
 import com.lyh.base.agent.mapper.LlmMemoryMapper;
+import com.lyh.base.agent.mapper.LlmTurnMapper;
 import com.lyh.base.agent.memory.MemoryManager;
 import com.lyh.base.agent.memory.MemoryProperty;
 import com.lyh.base.agent.memory.repository.MilvusMemoryRepository;
@@ -72,8 +73,8 @@ public class MemoryConfig {
 
     @Bean
     @ConditionalOnMissingBean
-    public MysqlMemoryRepository mysqlMemoryRepository(LlmMemoryMapper llmMemoryMapper) {
-        return new MysqlMemoryRepository(llmMemoryMapper);
+    public MysqlMemoryRepository mysqlMemoryRepository(LlmMemoryMapper llmMemoryMapper, LlmTurnMapper llmTurnMapper) {
+        return new MysqlMemoryRepository(llmMemoryMapper, llmTurnMapper);
     }
 
     @Bean

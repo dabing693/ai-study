@@ -58,8 +58,8 @@ public class ReactiveMemoryManager {
                     Mono.just(Optional.empty());
 
             return latestSummaryMono.flatMap(summaryOpt -> {
-                Long minId = summaryOpt.map(LlmSummary::getLastMemoryId).orElse(null);
-                query.setMinId(minId);
+                Long minTurnId = summaryOpt.map(LlmSummary::getLastTurnId).orElse(null);
+                query.setMinId(minTurnId);
 
                 List<Message> summaryMessages = new ArrayList<>();
                 summaryOpt.ifPresent(s -> {
@@ -73,14 +73,12 @@ public class ReactiveMemoryManager {
                 Mono<List<Message>> historyMono = Mono.fromCallable(() -> {
                     List<Message> hisMessages = new ArrayList<>();
                     if (Objects.equals(strategy, MemoryStrategy.sliding_window)) {
-                        hisMessages = memory2Message(mysqlMemoryRepository.get(query));
+                        hisMessages = memory2Message(mysqlMemoryRepository.getRecentTurnMessages(sessionId, minTurnId, memoryProperty.getMaxMessageNum()));
                     } else if (Objects.equals(strategy, MemoryStrategy.semantic_call)) {
                         hisMessages = memoryVector2Message(milvusMemoryRepository.get(query));
                     } else if (Objects.equals(strategy, MemoryStrategy.hybrid_tiered)) {
                         // L1
-                        MemoryQuery windowQuery = new MemoryQuery(sessionId,
-                                memoryProperty.getActiveWindow(), minId);
-                        List<LlmMemory> windowMemories = mysqlMemoryRepository.get(windowQuery);
+                        List<LlmMemory> windowMemories = mysqlMemoryRepository.getRecentTurnMessages(sessionId, minTurnId, memoryProperty.getActiveWindow());
                         List<Message> l1 = memory2Message(windowMemories);
                         // L2
                         MemoryQuery semQuery = new MemoryQuery(sessionId, userMessage, 5, memoryProperty.getMinScore(), null);
@@ -116,6 +114,7 @@ public class ReactiveMemoryManager {
             String sessionId = userContext.getConversationId();
 
             return Mono.<Void>fromRunnable(() -> {
+                RequestContext.setUser(userContext);
                 List<LlmMemory> llmMemories = mysqlMemoryRepository.add(sessionId, newMessages);
                 newMessages.forEach(it -> it.setHis(true));
                 // 异步存入向量数据库
@@ -133,9 +132,9 @@ public class ReactiveMemoryManager {
         milvusThreadPool.execute(() -> {
             try {
                 LlmSummary latest = summaryRepository.getLatest(sessionId);
-                Long minId = (latest != null) ? latest.getLastMemoryId() : null;
+                Long minTurnId = (latest != null) ? latest.getLastTurnId() : null;
 
-                long count = mysqlMemoryRepository.countNormalMessages(sessionId, minId);
+                long count = mysqlMemoryRepository.countTurns(sessionId, minTurnId);
                 if (count >= memoryProperty.getSummaryThreshold()) {
                     log.info("会话 {} 触发响应式逻辑位标摘要压缩", sessionId);
                     performCompression(sessionId, latest);
@@ -148,16 +147,19 @@ public class ReactiveMemoryManager {
 
     private void performCompression(String sessionId, LlmSummary oldSummary) {
         int activeWindow = memoryProperty.getActiveWindow();
-        Long lastId = (oldSummary != null) ? oldSummary.getLastMemoryId() : null;
+        Long lastTurnId = (oldSummary != null) ? oldSummary.getLastTurnId() : null;
 
-        long totalAfterWatermark = mysqlMemoryRepository.countNormalMessages(sessionId, lastId);
-        int toCompressCount = (int) (totalAfterWatermark - activeWindow);
-        if (toCompressCount <= 0) return;
+        long totalTurnsAfterWatermark = mysqlMemoryRepository.countTurns(sessionId, lastTurnId);
+        int toCompressTurns = (int) (totalTurnsAfterWatermark - activeWindow);
+        if (toCompressTurns <= 0) return;
 
-        List<LlmMemory> memoriesToCompress = mysqlMemoryRepository.getOldestMessages(sessionId, lastId, toCompressCount);
+        Long maxTurnId = mysqlMemoryRepository.getTurnBoundaryIdAsc(sessionId, lastTurnId, toCompressTurns);
+        if (maxTurnId == null) return;
+
+        List<LlmMemory> memoriesToCompress = mysqlMemoryRepository.getMessagesByTurnRange(sessionId, lastTurnId, maxTurnId);
         if (memoriesToCompress.isEmpty()) return;
 
-        Long newLastMemoryId = memoriesToCompress.get(memoriesToCompress.size() - 1).getId();
+        Long newLastTurnId = memoriesToCompress.get(memoriesToCompress.size() - 1).getTurnId();
 
         String intermediateContent = memoriesToCompress.stream()
                 .map(it -> it.getType() + ": " + it.getContent())
@@ -176,10 +178,10 @@ public class ReactiveMemoryManager {
         newSummary.setConversationId(sessionId);
         newSummary.setContent(newSummaryContent);
         newSummary.setTimestamp(java.time.LocalDateTime.now());
-        newSummary.setLastMemoryId(newLastMemoryId);
+        newSummary.setLastTurnId(newLastTurnId);
         summaryRepository.save(newSummary);
 
-        log.info("会话 {} [响应式] 逻辑摘要滚动完成，位标推进至 {}", sessionId, newLastMemoryId);
+        log.info("会话 {} [响应式] 逻辑摘要滚动完成，位标推进至 {}", sessionId, newLastTurnId);
     }
 
     private List<Message> memory2Message(List<LlmMemory> memoryList) {

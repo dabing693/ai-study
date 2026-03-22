@@ -26,13 +26,13 @@ public class MemoryProperty {
      */
     private boolean enableSummary = false;
     /**
-     * 触发摘要的条数阈值
+     * 触发摘要的轮次阈值
      */
-    private Integer summaryThreshold = 20;
+    private Integer summaryThreshold = 1;
     /**
-     * 在执行摘要压缩时，要保留多少条最新消息不被压缩
+     * 在执行摘要压缩时，要保留多少轮最新消息不被压缩
      */
-    private Integer activeWindow = 10;
+    private Integer activeWindow = 5;
 
     /**
      * 是否启用Redis缓存热数据

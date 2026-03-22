@@ -60,24 +60,24 @@ public class MemoryManager {
                 finalMessages.add(msg);
             });
         }
-        Long minId = latestSummaryOpt.map(LlmSummary::getLastMemoryId).orElse(null);
-        query.setMinId(minId);
+        Long minTurnId = latestSummaryOpt.map(LlmSummary::getLastTurnId).orElse(null);
+        query.setMinId(minTurnId);
 
         // 2. 加载历史消息
         List<Message> hisMessages = new ArrayList<>();
         if (Objects.equals(strategy, MemoryStrategy.sliding_window)) {
-            hisMessages = memory2Message(mysqlMemoryRepository.get(query));
+            hisMessages = memory2Message(mysqlMemoryRepository.getRecentTurnMessages(RequestContext.getSession(), minTurnId, memoryProperty.getMaxMessageNum()));
         } else if (Objects.equals(strategy, MemoryStrategy.semantic_call)) {
             //query改写
-            String rewrittenQuery = queryRewrite(userMessage, minId);
+            String rewrittenQuery = queryRewrite(userMessage, minTurnId);
             query.setRewrittenQuery(rewrittenQuery);
             hisMessages = memoryVector2Message(milvusMemoryRepository.get(query));
         } else if (Objects.equals(strategy, MemoryStrategy.hybrid_tiered)) {
             // L1: 窗口消息 - 优先从Redis读取热数据
-            List<LlmMemory> l1Memories = loadL1Memory(minId);
+            List<LlmMemory> l1Memories = loadL1Memory(minTurnId);
             List<Message> l1Messages = memory2Message(l1Memories);
             //query改写
-            String rewrittenQuery = queryRewrite(userMessage, minId);
+            String rewrittenQuery = queryRewrite(userMessage, minTurnId);
             // L2: 语义召回 (Top 5 相关，无视位标，因为向量库全量索引)
             MemoryQuery semanticQuery = new MemoryQuery(query.getConversationId(), userMessage, rewrittenQuery,
                     memoryProperty.getMinScore());
@@ -92,11 +92,6 @@ public class MemoryManager {
             List<Message> l2Messages = memoryVector2Message(filteredVectors);
             hisMessages.addAll(l2Messages);
             hisMessages.addAll(l1Messages);
-        }
-        // 3. 去重归并限制条数
-        int maxHisMsg = memoryProperty.getMaxMessageNum() - 2;
-        if (hisMessages.size() > maxHisMsg) {
-            hisMessages = hisMessages.subList(hisMessages.size() - maxHisMsg, hisMessages.size());
         }
         finalMessages.addAll(hisMessages);
         return finalMessages;
@@ -126,12 +121,12 @@ public class MemoryManager {
             try {
                 // 获取最新位标
                 LlmSummary latest = summaryRepository.getLatest(sessionId);
-                Long minId = (latest != null) ? latest.getLastMemoryId() : null;
+                Long minTurnId = (latest != null) ? latest.getLastTurnId() : null;
 
-                // 统计位标之后的普通消息数
-                long count = mysqlMemoryRepository.countNormalMessages(sessionId, minId);
+                // 统计位标之后的普通消息轮数
+                long count = mysqlMemoryRepository.countTurns(sessionId, minTurnId);
                 if (count >= memoryProperty.getSummaryThreshold()) {
-                    log.info("会话：{} 水位线后消息数 {} 触发逻辑摘要压缩", sessionId, count);
+                    log.info("会话：{} 水位线后轮数 {} 触发逻辑摘要压缩", sessionId, count);
                     performCompression(sessionId, latest);
                 }
             } catch (Exception e) {
@@ -142,22 +137,28 @@ public class MemoryManager {
 
     private void performCompression(String sessionId, LlmSummary oldSummary) {
         int activeWindow = memoryProperty.getActiveWindow();
-        Long lastId = (oldSummary != null) ? oldSummary.getLastMemoryId() : null;
+        Long lastTurnId = (oldSummary != null) ? oldSummary.getLastTurnId() : null;
 
-        // 1. 计算待压缩的消息区间：水位线之后，且保留最近的 activeWindow 条
-        long totalAfterWatermark = mysqlMemoryRepository.countNormalMessages(sessionId, lastId);
-        int toCompressCount = (int) (totalAfterWatermark - activeWindow);
-        if (toCompressCount <= 0) {
+        // 1. 计算待压缩的轮次区间：水位线之后，且保留最近的 activeWindow 轮
+        long totalTurnsAfterWatermark = mysqlMemoryRepository.countTurns(sessionId, lastTurnId);
+        int toCompressTurns = (int) (totalTurnsAfterWatermark - activeWindow);
+        if (toCompressTurns <= 0) {
             return;
         }
-        // 2. 获取最老的 N 条待压缩消息
-        List<LlmMemory> memoriesToCompress = mysqlMemoryRepository.getOldestMessages(sessionId, lastId, toCompressCount);
+        // 2. 获取作为截断边界的 turnId
+        Long maxTurnId = mysqlMemoryRepository.getTurnBoundaryIdAsc(sessionId, lastTurnId, toCompressTurns);
+        if (maxTurnId == null) {
+            return;
+        }
+
+        // 获取该区间所有消息
+        List<LlmMemory> memoriesToCompress = mysqlMemoryRepository.getMessagesByTurnRange(sessionId, lastTurnId, maxTurnId);
         if (memoriesToCompress.isEmpty()) {
             return;
         }
 
-        // 记录新的水位线 ID
-        Long newLastMemoryId = memoriesToCompress.get(memoriesToCompress.size() - 1).getId();
+        // 记录新的水位线 ID (本批被压缩数据的最大 turnId)
+        Long newLastTurnId = memoriesToCompress.get(memoriesToCompress.size() - 1).getTurnId();
         String intermediateContent = memoriesToCompress.stream()
                 .map(it -> it.getType() + ": " + it.getContent())
                 .collect(Collectors.joining("\n"));
@@ -169,9 +170,9 @@ public class MemoryManager {
             newSummary.setConversationId(sessionId);
             newSummary.setContent(newSummaryContent);
             newSummary.setTimestamp(LocalDateTime.now());
-            newSummary.setLastMemoryId(newLastMemoryId);
+            newSummary.setLastTurnId(newLastTurnId);
             summaryRepository.save(newSummary);
-            log.info("会话 {} 完成逻辑摘要滚动，位标推进至 {}", sessionId, newLastMemoryId);
+            log.info("会话 {} 完成逻辑摘要滚动，位标推进至 {}", sessionId, newLastTurnId);
         } else {
             log.warn("会话摘要总结为空，session：{}", sessionId);
         }
@@ -216,23 +217,15 @@ public class MemoryManager {
         return memory2Message(llmMemories);
     }
 
-    private List<LlmMemory> loadL1Memory(Long minId) {
+    private List<LlmMemory> loadL1Memory(Long minTurnId) {
         List<LlmMemory> llmMemories = null;
         String conversationId = RequestContext.getSession();
         if (memoryProperty.isEnableRedisCache()) {
-            llmMemories = redisMemoryRepository.get(conversationId, memoryProperty.getActiveWindow());
-            //todo 不去查mysql，存在redis过期后用户重新开始问，最近的对话未拿到
-            //todo 去查mysql，新对话用户刚开始问，查了mysql也达不到条数
-            if (llmMemories.size() < memoryProperty.getActiveWindow()) {
-                MemoryQuery windowQuery = new MemoryQuery(conversationId, memoryProperty.getActiveWindow(), minId);
-                llmMemories = mysqlMemoryRepository.get(windowQuery);
-                //回填redis
-                redisMemoryRepository.add(conversationId, llmMemories);
-            }
+            // TODO: 因改成轮次，redis中原本存的条数已不够精确。简化处理：强制穿透查库回填
+            llmMemories = mysqlMemoryRepository.getRecentTurnMessages(conversationId, minTurnId, memoryProperty.getActiveWindow());
+            redisMemoryRepository.add(conversationId, llmMemories);
         } else {
-            MemoryQuery windowQuery = new MemoryQuery(conversationId,
-                    memoryProperty.getActiveWindow(), minId);
-            llmMemories = mysqlMemoryRepository.get(windowQuery);
+            llmMemories = mysqlMemoryRepository.getRecentTurnMessages(conversationId, minTurnId, memoryProperty.getActiveWindow());
         }
         return llmMemories;
     }
