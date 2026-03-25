@@ -4,11 +4,11 @@ import com.lyh.base.agent.util.MarkdownUtil;
 import com.lyh.base.agent.annotation.Tool;
 import com.lyh.base.agent.annotation.ToolParam;
 import com.lyh.finance.domain.dto.SearchCodeDTO;
+import com.lyh.base.agent.tool.ToolResult;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
-import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.*;
@@ -19,7 +19,7 @@ import java.util.stream.Collectors;
  * @date 2026/1/25
  */
 @Service
-public class StockTool {
+public class StockTool extends BaseTool {
     @Autowired
     private SearchTool searchTool;
     @Autowired
@@ -29,7 +29,7 @@ public class StockTool {
             new HashSet<>(Arrays.asList("SERIAL", "SECURITY_CODE", "MARKET_SHORT_NAME", "MARKET_NUM"));
 
     @Tool(description = "选出符合条件的股票")
-    public String selectStock(@ToolParam(description = "选股条件") String selectStockCondition) {
+    public Object selectStock(@ToolParam(description = "选股条件") String selectStockCondition) {
         return request(selectStockCondition);
     }
 
@@ -38,12 +38,12 @@ public class StockTool {
             例句1：腾讯的成立时间
             例句2：腾讯的成交量、市值、换手率
             """)
-    public String queryStock(@ToolParam(description = "股票查询条件") String stockQuery) {
-        String res = request(stockQuery);
-        return StringUtils.hasLength(res) ? res : searchTool.search(stockQuery, null);
+    public Object queryStock(@ToolParam(description = "股票查询条件") String stockQuery) {
+        ToolResult res = request(stockQuery);
+        return res != null ? res : searchTool.search(stockQuery, null);
     }
 
-    private String request(String query) {
+    private ToolResult request(String query) {
         Map<String, Object> params = new HashMap<>();
         params.put("pageSize", 10);
         params.put("pageNo", 1);
@@ -71,7 +71,7 @@ public class StockTool {
                 .map(SearchCodeDTO.Data::getResult)
                 .orElse(null);
         if (result == null || CollectionUtils.isEmpty(result.getDataList())) {
-            return "";
+            return null;
         }
         List<SearchCodeDTO.Data.Result.Column> columns = result.getColumns()
                 .stream().filter(it -> !NO_SHOW_KEYS.contains(it.getKey())).collect(Collectors.toList());
@@ -86,6 +86,19 @@ public class StockTool {
             }
             array[i + 1] = line;
         }
-        return MarkdownUtil.arrayToMarkdownTable(array);
+        List<String> valuableContents = new ArrayList<>();
+        for (int i = 1; i < array.length; i++) {
+            //股票名称
+            Object stockName = array[i][0];
+            for (int j = 1; j < array[0].length; j++) {
+                //指标名称
+                Object indicatorName = array[0][j];
+                Object indicatorValue = array[i][j];
+                String valuableContent = String.format("%s的%s：%s", stockName, indicatorName, indicatorValue);
+                valuableContents.add(valuableContent);
+            }
+        }
+        String content = MarkdownUtil.arrayToMarkdownTable(array);
+        return getToolResult(content, valuableContents);
     }
 }

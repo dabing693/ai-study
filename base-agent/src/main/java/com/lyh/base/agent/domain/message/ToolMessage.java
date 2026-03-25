@@ -1,8 +1,11 @@
 package com.lyh.base.agent.domain.message;
 
+import com.fasterxml.jackson.annotation.JsonFilter;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.lyh.base.agent.enums.MessageType;
 import lombok.Data;
+
+import java.util.List;
 
 /**
  * @author lengYinHui
@@ -16,6 +19,12 @@ public class ToolMessage extends Message {
     public ToolMessage(String content, String toolCallId) {
         super(MessageType.tool.name(), content);
         this.toolCallId = toolCallId;
+    }
+
+    public ToolMessage(String content, String toolCallId, List<String> valuableContents) {
+        super(MessageType.tool.name(), content);
+        this.toolCallId = toolCallId;
+        this.valuableContents = valuableContents;
     }
 
     public static String strContent(Object content) {

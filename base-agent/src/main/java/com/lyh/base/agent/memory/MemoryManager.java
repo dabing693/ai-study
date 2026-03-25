@@ -87,7 +87,7 @@ public class MemoryManager {
                     .map(LlmMemory::getId)
                     .collect(Collectors.toSet());
             List<LlmMemoryVector> filteredVectors = vectors.stream()
-                    .filter(v -> !l1Ids.contains(v.getId()))
+                    .filter(v -> !l1Ids.contains(v.getMsg_id()))
                     .collect(Collectors.toList());
             List<Message> l2Messages = memoryVector2Message(filteredVectors);
             hisMessages.addAll(l2Messages);
@@ -186,21 +186,7 @@ public class MemoryManager {
                 .collect(Collectors.toList());
         List<Message> msgList = new ArrayList<>();
         for (LlmMemory it : llmMemories) {
-            Message msg = null;
-            if (Objects.equals(it.getType(), MessageType.user)) {
-                msg = JSONObject.parseObject(it.getJsonContent(), UserMessage.class);
-            } else if (Objects.equals(it.getType(), MessageType.assistant)) {
-                msg = JSONObject.parseObject(it.getJsonContent(), AssistantMessage.class);
-            } else if (Objects.equals(it.getType(), MessageType.tool)) {
-                msg = JSONObject.parseObject(it.getJsonContent(), ToolMessage.class);
-            } else if (Objects.equals(it.getType(), MessageType.system)) {
-                msg = JSONObject.parseObject(it.getJsonContent(), SystemMessage.class);
-            } else {
-                throw new RuntimeException("未知消息类型：" + it.getType());
-            }
-            msg.setHis(true);
-            msg.setCreate(it.getTimestamp());
-            msgList.add(msg);
+            msgList.add(Message.fromMemory(it));
         }
         return msgList;
     }
@@ -209,11 +195,11 @@ public class MemoryManager {
         if (vectorList == null || vectorList.isEmpty()) {
             return Collections.emptyList();
         }
-        List<Long> ids = vectorList.stream().map(LlmMemoryVector::getId).collect(Collectors.toList());
+        Set<Long> ids = vectorList.stream().map(LlmMemoryVector::getMsg_id).collect(Collectors.toSet());
         if (ids.isEmpty()) {
             return Collections.emptyList();
         }
-        List<LlmMemory> llmMemories = mysqlMemoryRepository.selectByIds(ids);
+        List<LlmMemory> llmMemories = mysqlMemoryRepository.selectByIds(new ArrayList<>(ids));
         return memory2Message(llmMemories);
     }
 

@@ -21,6 +21,7 @@ import java.util.Map;
 public class ToolInvoker {
     /**
      * 抽象出ToolInvoker，用来解决标注在ToolManager里面的@LangfuseObserver不生效的问题，因为未交给spring管理
+     *
      * @param toolCall
      * @param toolCallBack
      * @return
@@ -69,7 +70,12 @@ public class ToolInvoker {
         }
         Object toolResult = invoke(toolCallBack, params);
         log.info("\n工具调用结果：\n{}", toolResult);
-        return new ToolMessage(ToolMessage.strContent(toolResult), toolCall.getId());
+        if (toolResult instanceof ToolResult) {
+            ToolResult result = (ToolResult) toolResult;
+            return new ToolMessage(result.getContent(), toolCall.getId(), result.getValuableContents());
+        } else {
+            return new ToolMessage(ToolMessage.strContent(toolResult), toolCall.getId());
+        }
     }
 
     public Object invoke(ToolBuilder.ToolCallBack toolCallBack, Object... params) {

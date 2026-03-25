@@ -158,7 +158,7 @@ public class MysqlMemoryRepository implements IMemoryRepository<Message, LlmMemo
             llmMemory.setContent(message.storedContent());
             llmMemory.setType(MessageType.valueOf(message.getRole()));
             llmMemory.setTimestamp(message.getCreate());
-            llmMemory.setJsonContent(JSONObject.toJSONString(message));
+            llmMemory.setJsonContent(message.jsonContent());
             llmMemory.setTurnId(turnId);
             list.add(llmMemory);
         }

@@ -1,5 +1,7 @@
 package com.lyh.base.agent.memory.repository;
 
+import com.alibaba.fastjson2.JSONArray;
+import com.alibaba.fastjson2.JSONObject;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.lyh.base.agent.domain.DO.LlmMemory;
@@ -33,7 +35,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class MilvusMemoryRepository implements IMemoryRepository<LlmMemory, LlmMemoryVector> {
     //todo 按agent区分 agent名称从上游传入
-    @Value("${milvus.collection-name:finance_agent_memory}")
+    @Value("${milvus.collection-name:agent_memory}")
     private String collectionName;
     private final MilvusClientV2 milvusClientV2;
     private final EmbeddingModel embeddingModel;
@@ -45,17 +47,24 @@ public class MilvusMemoryRepository implements IMemoryRepository<LlmMemory, LlmM
             //system tool消息不保存，因为向量搜索的目的是召回相关的历史记忆。
             // 示例1：它今天表现咋样？示例2：你之前提到的xxx，是啥意思？
             // 示例1：得过一层query改写解决
-            if (Objects.equals(it.getType(), MessageType.system) ||
-                    Objects.equals(it.getType(), MessageType.tool)) {
+            if (Objects.equals(it.getType(), MessageType.system)) {
                 continue;
             }
-            LlmMemoryVector vector = new LlmMemoryVector();
-            vector.setId(it.getId());
-            vector.setType(it.getType().name());
-            vector.setConversation_id(it.getConversationId());
-            vector.setContent(it.getContent());
-            vector.setContent_vector(embeddingModel.genVector(it.getContent()));
-            vectorList.add(vector);
+            //判断有价值的内容是否为空
+            JSONObject jsonObject = JSONObject.parseObject(it.getJsonContent());
+            JSONArray valuableContents = jsonObject.getJSONArray("valuableContents");
+            if (CollectionUtils.isEmpty(valuableContents)) {
+                LlmMemoryVector vector = LlmMemoryVector.of(it, it.getContent(),
+                        embeddingModel.genVector(it.getContent()));
+                vectorList.add(vector);
+            } else {
+                for (Object valuableContent : valuableContents) {
+                    String valuableContentStr = (String) valuableContent;
+                    LlmMemoryVector vector = LlmMemoryVector.of(it, valuableContentStr,
+                            embeddingModel.genVector(valuableContentStr));
+                    vectorList.add(vector);
+                }
+            }
         }
         if (CollectionUtils.isEmpty(vectorList)) {
             return Collections.emptyList();
@@ -64,10 +73,11 @@ public class MilvusMemoryRepository implements IMemoryRepository<LlmMemory, LlmM
         log.info("成功保存到向量数据库，条数：{}", vectorList.size());
         return vectorList.stream()
                 .map(vector -> {
-                    LlmMemoryVector summary = new LlmMemoryVector();
-                    summary.setId(vector.getId());
-                    summary.setContent(vector.getContent());
-                    return summary;
+                    LlmMemoryVector vector1 = new LlmMemoryVector();
+                    vector1.setId(vector.getId());
+                    vector1.setContent(vector.getContent());
+                    vector1.setMsg_id(vector.getMsg_id());
+                    return vector1;
                 })
                 .collect(Collectors.toList());
     }
@@ -109,7 +119,7 @@ public class MilvusMemoryRepository implements IMemoryRepository<LlmMemory, LlmM
                 .searchRequests(Arrays.asList(sparseRequest, denseRequest))
                 .ranker(new WeightedRanker(Arrays.asList(0.6f, 0.4f)))
                 .limit(limit)
-                .outFields(Arrays.asList("id", "content"))
+                .outFields(Arrays.asList("id", "content", "msg_id"))
                 .build();
         // 7) 执行混合检索。
         SearchResp resp = milvusClientV2.hybridSearch(hybridSearchReq);
@@ -130,10 +140,14 @@ public class MilvusMemoryRepository implements IMemoryRepository<LlmMemory, LlmM
                         if (content != null) {
                             vector.setContent(String.valueOf(content));
                         }
+                        Object msgId = fields.get("msg_id");
+                        if (msgId != null) {
+                            vector.setMsg_id(parseId(msgId));
+                        }
                     }
                     return vector;
                 })
-                .filter(vector -> vector.getId() != null && StringUtils.hasText(vector.getContent()))
+                .filter(vector -> vector.getMsg_id() != null && StringUtils.hasText(vector.getContent()))
                 .collect(Collectors.toList());
     }
 
@@ -164,10 +178,11 @@ public class MilvusMemoryRepository implements IMemoryRepository<LlmMemory, LlmM
         List<JsonObject> rows = new ArrayList<>(list.size());
         for (LlmMemoryVector vector : list) {
             JsonObject row = new JsonObject();
-            row.addProperty("id", vector.getId());
+            //row.addProperty("id", vector.getId());
             row.addProperty("type", vector.getType());
             row.addProperty("conversation_id", vector.getConversation_id());
             row.addProperty("content", vector.getContent());
+            row.addProperty("msg_id", vector.getMsg_id());
             JsonArray contentVector = new JsonArray();
             for (Float value : vector.getContent_vector()) {
                 contentVector.add(value);

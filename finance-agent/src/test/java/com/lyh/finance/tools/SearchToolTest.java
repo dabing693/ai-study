@@ -9,7 +9,7 @@ import org.springframework.boot.test.context.SpringBootTest;
  * @date 2026/1/26
  */
 @SpringBootTest
-public class SearchServiceTest {
+public class SearchToolTest {
     @Resource
     private SearchTool searchTool;
 
