@@ -34,7 +34,7 @@ public class FundTool {
     }
 
     @Tool(description = "查询指定基金的数据")
-    public String queryFund(@ToolParam(description = "基金查询条件") String fundQuery) {
+    public Object queryFund(@ToolParam(description = "基金查询条件") String fundQuery) {
         String res = request(fundQuery);
         return StringUtils.hasLength(res) ? res : searchTool.search(fundQuery, null);
     }

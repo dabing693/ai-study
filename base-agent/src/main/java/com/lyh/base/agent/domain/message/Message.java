@@ -16,6 +16,8 @@ import java.util.Objects;
  */
 @Data
 public class Message {
+    public static final String KEY_VALUABLE_CONTENTS = "valuableContents";
+
     private String role;
     private String content;
     @JsonIgnore
@@ -45,9 +47,8 @@ public class Message {
 
     public String jsonContent() {
         JSONObject jsonObject = JSONObject.from(this);
-        jsonObject.put("create", this.create.toString());
         if (valuableContents != null && !valuableContents.isEmpty()) {
-            jsonObject.put("valuableContents", this.valuableContents);
+            jsonObject.put(Message.KEY_VALUABLE_CONTENTS, this.valuableContents);
         }
         return jsonObject.toString();
     }

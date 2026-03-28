@@ -1,6 +1,7 @@
 package com.lyh.finance.tools;
 
 
+import com.lyh.base.agent.tool.ToolResult;
 import com.lyh.base.agent.util.MarkdownUtil;
 import com.lyh.base.agent.annotation.Tool;
 import com.lyh.base.agent.annotation.ToolParam;
@@ -13,6 +14,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -30,8 +32,8 @@ public class SearchTool {
             搜索引擎，可以搜索一切你想了解的内容！比如股票的消息、新闻等数据。
             startDate只有当用户有日期要求时才填，否则不填。
             """)
-    public String search(@ToolParam(description = "搜索引擎query") String query,
-                         @ToolParam(description = "开始日期\n格式：yyyy-MM-dd", required = false) String startDate) {
+    public ToolResult search(@ToolParam(description = "搜索引擎query") String query,
+                             @ToolParam(description = "开始日期\n格式：yyyy-MM-dd", required = false) String startDate) {
         TavilySearchQuery request = TavilySearchQuery.builder()
                 .query(query)
                 .topic("general")
@@ -49,11 +51,14 @@ public class SearchTool {
         List<TavilySearchDTO.TavilySearchResult> searchResults = Optional.ofNullable(searchDTO).map(TavilySearchDTO::getResults).orElse(null);
         Object[][] array = new Object[searchResults.size() + 1][2];
         array[0] = head;
+        List<String> valuableContents = new ArrayList<>();
         for (int i = 0; i < searchResults.size(); i++) {
             TavilySearchDTO.TavilySearchResult res = searchResults.get(i);
             array[i + 1] = new Object[]{res.getTitle(), res.getContent()};
+            valuableContents.add(String.format("标题：%s\n资讯内容：%s", res.getTitle(), res.getContent()));
         }
-        return MarkdownUtil.arrayToMarkdownTable(array);
+        String content = MarkdownUtil.arrayToMarkdownTable(array);
+        return new ToolResult(content, valuableContents);
     }
 
     private TavilySearchDTO search(TavilySearchQuery request) {

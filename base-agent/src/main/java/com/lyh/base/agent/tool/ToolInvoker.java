@@ -66,16 +66,11 @@ public class ToolInvoker {
         if (toolCallBack.getDynamicCallback() != null) {
             Object toolResult = toolCallBack.getDynamicCallback().apply(valueMap);
             log.info("\n工具调用结果：\n{}", toolResult);
-            return new ToolMessage(ToolMessage.strContent(toolResult), toolCall.getId());
+            return buildMessage(toolCall, toolResult);
         }
         Object toolResult = invoke(toolCallBack, params);
         log.info("\n工具调用结果：\n{}", toolResult);
-        if (toolResult instanceof ToolResult) {
-            ToolResult result = (ToolResult) toolResult;
-            return new ToolMessage(result.getContent(), toolCall.getId(), result.getValuableContents());
-        } else {
-            return new ToolMessage(ToolMessage.strContent(toolResult), toolCall.getId());
-        }
+        return buildMessage(toolCall, toolResult);
     }
 
     public Object invoke(ToolBuilder.ToolCallBack toolCallBack, Object... params) {
@@ -89,5 +84,14 @@ public class ToolInvoker {
             log.error("工具调用异常", e);
         }
         return null;
+    }
+
+    private ToolMessage buildMessage(AssistantMessage.ToolCall toolCall, Object toolResult) {
+        if (toolResult instanceof ToolResult) {
+            ToolResult result = (ToolResult) toolResult;
+            return new ToolMessage(result.getContent(), toolCall.getId(), result.getValuableContents());
+        } else {
+            return new ToolMessage(ToolMessage.strContent(toolResult), toolCall.getId());
+        }
     }
 }

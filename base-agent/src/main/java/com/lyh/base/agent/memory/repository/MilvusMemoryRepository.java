@@ -6,6 +6,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.lyh.base.agent.domain.DO.LlmMemory;
 import com.lyh.base.agent.domain.DO.LlmMemoryVector;
+import com.lyh.base.agent.domain.message.Message;
 import com.lyh.base.agent.enums.MessageType;
 import com.lyh.base.agent.memory.MemoryQuery;
 import com.lyh.base.agent.model.embedding.EmbeddingModel;
@@ -52,7 +53,7 @@ public class MilvusMemoryRepository implements IMemoryRepository<LlmMemory, LlmM
             }
             //判断有价值的内容是否为空
             JSONObject jsonObject = JSONObject.parseObject(it.getJsonContent());
-            JSONArray valuableContents = jsonObject.getJSONArray("valuableContents");
+            JSONArray valuableContents = jsonObject.getJSONArray(Message.KEY_VALUABLE_CONTENTS);
             if (CollectionUtils.isEmpty(valuableContents)) {
                 LlmMemoryVector vector = LlmMemoryVector.of(it, it.getContent(),
                         embeddingModel.genVector(it.getContent()));

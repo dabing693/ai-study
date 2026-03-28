@@ -3,6 +3,7 @@ package com.lyh.base.agent.mcp;
 import com.alibaba.fastjson2.JSONObject;
 import com.lyh.base.agent.domain.FunctionTool;
 import com.lyh.base.agent.tool.ToolBuilder;
+import com.lyh.base.agent.tool.ToolResult;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
@@ -13,6 +14,7 @@ import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Slf4j
@@ -49,30 +51,47 @@ public class McpClientManager {
 
     public void registerAllTools(ToolBuilder toolBuilder) {
         for (McpRestTemplateClient client : clients) {
-            List<FunctionTool.Function> functionList = client.tools2Functions();
-            for (FunctionTool.Function function : functionList) {
-                String name = function.getName();
-                // 注册动态回调
-                toolBuilder.addDynamicTool(function, argsMap -> {
-                    JSONObject callRes = client.callTool(name, argsMap);
-                    ToolsCallResp toolsCallResp = callRes.to(ToolsCallResp.class);
-                    List<ToolsCallResp.Result.Content> contents = Optional.ofNullable(toolsCallResp).
-                            map(ToolsCallResp::getResult)
-                            .map(ToolsCallResp.Result::getContent)
-                            .orElse(null);
-                    if (contents == null || contents.isEmpty()) {
-                        return "调用工具失败" + name;
-                    }
-                    String text = contents.get(0).getText();
-                    if (text != null) {
-                        text = text.trim();
-                        //去掉首尾双引号 将转义的\n替换为真正的换行符
-                        text = text.replaceAll("^\"|\"$", "").replace("\\n", "\n");
-                    }
-                    log.info("mcp工具调用结果：\n{}", text);
-                    return text;
-                });
-            }
+            registerOneClient(client, toolBuilder);
         }
+    }
+
+    private void registerOneClient(McpRestTemplateClient client, ToolBuilder toolBuilder) {
+        List<FunctionTool.Function> functionList = client.tools2Functions();
+        for (FunctionTool.Function function : functionList) {
+            String name = function.getName();
+            // 注册动态回调
+            toolBuilder.addDynamicTool(function,
+                    argsMap -> callback(client, name, argsMap));
+        }
+    }
+
+    private Object callback(McpRestTemplateClient client, String name, Map<String, Object> argsMap) {
+        JSONObject callRes = client.callTool(name, argsMap);
+        ToolsCallResp toolsCallResp = callRes.to(ToolsCallResp.class);
+        List<ToolsCallResp.Result.Content> contents = Optional.ofNullable(toolsCallResp).
+                map(ToolsCallResp::getResult)
+                .map(ToolsCallResp.Result::getContent)
+                .orElse(null);
+        if (contents == null || contents.isEmpty()) {
+            return "调用工具失败" + name;
+        }
+        String text = contents.get(0).getText();
+        try {
+            ToolResult result = JSONObject.parseObject(text, ToolResult.class);
+            return result;
+        } catch (Exception e) {
+            log.info("非ToolResult类型响应：{}，异常：{}", name, e.getMessage());
+            return removeEscape(text);
+        }
+    }
+
+    private String removeEscape(String text) {
+        if (text != null) {
+            text = text.trim();
+            //去掉首尾双引号 将转义的\n替换为真正的换行符
+            text = text.replaceAll("^\"|\"$", "").replace("\\n", "\n");
+        }
+        log.info("mcp工具调用结果：\n{}", text);
+        return text;
     }
 }

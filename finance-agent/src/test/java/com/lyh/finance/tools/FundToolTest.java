@@ -21,7 +21,7 @@ public class FundToolTest {
 
     @Test
     public void queryStockTest() {
-        String s = fundTool.queryFund("国投瑞银白银期货(LOF)A 近一月收益率");
+        Object s = fundTool.queryFund("国投瑞银白银期货(LOF)A 近一月收益率");
         System.out.println(s);
     }
 }

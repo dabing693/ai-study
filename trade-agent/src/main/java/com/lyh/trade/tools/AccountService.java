@@ -2,9 +2,13 @@ package com.lyh.trade.tools;
 
 
 import com.lyh.common.util.MarkdownUtil;
+import com.lyh.trade.domain.ToolResult;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 import org.springframework.stereotype.Service;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * @author lengYinHui
@@ -18,7 +22,7 @@ public class AccountService {
      * 出参：实时总资产、现金、股票、场内ETF、天天宝（货币基金）、理财资产各项所占的仓位
      */
     @Tool(description = "获取资产分布信息")
-    public String getAssetDistribution() {
+    public ToolResult getAssetDistribution() {
         String[][] assetData = {
                 {"资产类型", "金额", "占比"},
                 {"实时总资产", "100000元", "100%"},
@@ -28,7 +32,16 @@ public class AccountService {
                 {"天天宝（货币基金）", "5000元", "5%"},
                 {"理财资产", "5000元", "5%"}
         };
-        return MarkdownUtil.arrayToMarkdownTable(assetData);
+        List<String> valuableContents = new ArrayList<>();
+        for (int i = 1; i < assetData.length; i++) {
+            List<String> items = new ArrayList<>();
+            for (int j = 0; j < assetData[i].length; j++) {
+                items.add(String.format("%s：%s", assetData[0][j], assetData[i][j]));
+            }
+            valuableContents.add(String.join("\n", items));
+        }
+        String content = MarkdownUtil.arrayToMarkdownTable(assetData);
+        return new ToolResult(content, valuableContents);
     }
 
     /**

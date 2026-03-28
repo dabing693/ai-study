@@ -38,7 +38,7 @@ public class StockTool extends BaseTool {
             例句1：腾讯的成立时间
             例句2：腾讯的成交量、市值、换手率
             """)
-    public Object queryStock(@ToolParam(description = "股票查询条件") String stockQuery) {
+    public ToolResult queryStock(@ToolParam(description = "股票查询条件") String stockQuery) {
         ToolResult res = request(stockQuery);
         return res != null ? res : searchTool.search(stockQuery, null);
     }
